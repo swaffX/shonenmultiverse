@@ -147,6 +147,10 @@ async function handleButtonInteraction(interaction, client) {
     else if (customId.startsWith('poll_')) {
         await interaction.reply({ content: '✅ Your vote has been recorded!', ephemeral: true });
     }
+    // Suggestion voting
+    else if (customId === 'suggest_upvote' || customId === 'suggest_downvote') {
+        await handleSuggestionVote(interaction, customId === 'suggest_upvote');
+    }
 }
 
 async function handleSelectMenuInteraction(interaction, client) {
@@ -243,3 +247,48 @@ async function handleModalSubmit(interaction, client) {
     }
 }
 
+// Store suggestion votes (messageId -> { upvotes: Set, downvotes: Set })
+const suggestionVotes = new Map();
+
+async function handleSuggestionVote(interaction, isUpvote) {
+    const messageId = interaction.message.id;
+    const userId = interaction.user.id;
+
+    // Initialize votes for this suggestion
+    if (!suggestionVotes.has(messageId)) {
+        suggestionVotes.set(messageId, {
+            upvotes: new Set(),
+            downvotes: new Set()
+        });
+    }
+
+    const votes = suggestionVotes.get(messageId);
+
+    // Remove previous vote if exists
+    votes.upvotes.delete(userId);
+    votes.downvotes.delete(userId);
+
+    // Add new vote
+    if (isUpvote) {
+        votes.upvotes.add(userId);
+    } else {
+        votes.downvotes.add(userId);
+    }
+
+    // Update button labels
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('suggest_upvote')
+            .setLabel(String(votes.upvotes.size))
+            .setEmoji('👍')
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('suggest_downvote')
+            .setLabel(String(votes.downvotes.size))
+            .setEmoji('👎')
+            .setStyle(ButtonStyle.Danger)
+    );
+
+    await interaction.update({ components: [row] });
+}

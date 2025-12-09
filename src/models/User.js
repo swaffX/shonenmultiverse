@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    oderId: {
+    oderId: { // userId (typo preserved for compat)
         type: String,
         required: true
     },
@@ -9,35 +9,34 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    xp: {
-        type: Number,
-        default: 0
+    // Level System
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    totalMessages: { type: Number, default: 0 },
+    totalVoiceTime: { type: Number, default: 0 }, // in minutes
+    lastXpGain: { type: Date, default: null },
+    lastVoiceJoin: { type: Date, default: null },
+
+    // Weekly Stats (reset every Monday)
+    weeklyMessages: { type: Number, default: 0 },
+    weeklyVoiceTime: { type: Number, default: 0 }, // in minutes
+    weeklyResetAt: { type: Date, default: Date.now },
+
+    // Channel Stats
+    channelStats: {
+        type: Map,
+        of: Number,
+        default: new Map()
     },
-    level: {
-        type: Number,
-        default: 1
-    },
-    totalMessages: {
-        type: Number,
-        default: 0
-    },
-    lastXpGain: {
-        type: Date,
-        default: null
-    },
+
+    // Moderation
     warnings: [{
         moderatorId: String,
         reason: String,
         date: { type: Date, default: Date.now }
     }],
-    isMuted: {
-        type: Boolean,
-        default: false
-    },
-    muteExpires: {
-        type: Date,
-        default: null
-    }
+    isMuted: { type: Boolean, default: false },
+    muteExpires: { type: Date, default: null }
 }, { timestamps: true });
 
 // Compound index for faster queries
@@ -52,11 +51,37 @@ userSchema.statics.findOrCreate = async function (userId, guildId) {
     return user;
 };
 
-// Static method to get leaderboard
+// Static method to get XP leaderboard
 userSchema.statics.getLeaderboard = async function (guildId, limit = 10) {
     return this.find({ guildId })
         .sort({ xp: -1 })
         .limit(limit);
+};
+
+// Static method to get weekly message leaderboard
+userSchema.statics.getWeeklyMessageLeaders = async function (guildId, limit = 10) {
+    return this.find({ guildId })
+        .sort({ weeklyMessages: -1 })
+        .limit(limit);
+};
+
+// Static method to get weekly voice leaderboard
+userSchema.statics.getWeeklyVoiceLeaders = async function (guildId, limit = 10) {
+    return this.find({ guildId })
+        .sort({ weeklyVoiceTime: -1 })
+        .limit(limit);
+};
+
+// Static method to reset weekly stats
+userSchema.statics.resetWeeklyStats = async function (guildId) {
+    return this.updateMany(
+        { guildId },
+        {
+            weeklyMessages: 0,
+            weeklyVoiceTime: 0,
+            weeklyResetAt: new Date()
+        }
+    );
 };
 
 module.exports = mongoose.model('User', userSchema);

@@ -1,11 +1,15 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const { recordAction, handleNukeAttempt } = require('../systems/protectionSystem');
+const { logChannelDelete } = require('../systems/loggingSystem');
 const config = require('../config/config');
 
 module.exports = {
     name: Events.ChannelDelete,
     once: false,
     async execute(channel, client) {
+        // Log channel delete
+        await logChannelDelete(channel).catch(console.error);
+
         if (!config.antiNuke.enabled) return;
         if (!channel.guild) return; // DM channel
 
