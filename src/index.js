@@ -124,11 +124,68 @@ client.once('ready', () => {
     }, 30000);
 });
 
-// Error handling
-client.on('error', console.error);
-process.on('unhandledRejection', error => {
-    console.error('Unhandled promise rejection:', error);
+// Discord client error handling
+client.on('error', (error) => {
+    console.error('❌ Discord client error:', error);
 });
 
-// Start the bot
-init();
+client.on('disconnect', () => {
+    console.log('⚠️ Bot disconnected from Discord');
+});
+
+client.on('reconnecting', () => {
+    console.log('🔄 Bot reconnecting to Discord...');
+});
+
+// Global error handling with restart capability
+process.on('unhandledRejection', async (error) => {
+    console.error('❌ Unhandled promise rejection:', error);
+
+    // Check if it's a connection timeout error
+    if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || error.code === 'ECONNRESET') {
+        console.log('🔄 Connection timeout detected, attempting to reconnect in 10 seconds...');
+
+        // Wait and try to destroy/recreate connection
+        setTimeout(async () => {
+            try {
+                if (client.isReady()) {
+                    console.log('✅ Client is still ready, continuing...');
+                } else {
+                    console.log('🔄 Attempting to login again...');
+                    await client.login(process.env.BOT_TOKEN);
+                }
+            } catch (retryError) {
+                console.error('❌ Reconnection attempt failed:', retryError);
+                console.log('⚠️ PM2 will restart the bot automatically.');
+                process.exit(1);
+            }
+        }, 10000);
+    }
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('❌ Uncaught exception:', error);
+    // Let PM2 handle restart
+    process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('👋 Bot shutting down gracefully...');
+    client.destroy();
+    mongoose.connection.close();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('👋 Bot shutting down gracefully...');
+    client.destroy();
+    mongoose.connection.close();
+    process.exit(0);
+});
+
+// Start the bot with error handling
+init().catch(error => {
+    console.error('❌ Failed to start bot:', error);
+    process.exit(1);
+});
