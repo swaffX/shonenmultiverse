@@ -2,9 +2,6 @@ const { EmbedBuilder } = require('discord.js');
 const config = require('../config/config');
 const Guild = require('../models/Guild');
 
-// Store the booster message ID for real-time updates
-const boosterMessages = new Map();
-
 /**
  * Initialize the booster system
  */
@@ -25,13 +22,15 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
         const channel = guild.channels.cache.get(channelId);
         if (!channel) return null;
 
-        // Get all boosters
-        const boosters = guild.members.cache
-            .filter(member => member.premiumSince)
-            .sort((a, b) => a.premiumSince - b.premiumSince);
+        // Get all boosters - convert to array properly
+        const boostersArray = Array.from(
+            guild.members.cache
+                .filter(member => member.premiumSince)
+                .values()
+        ).sort((a, b) => a.premiumSince - b.premiumSince);
 
-        // Count boosts per user (approximation based on guild boost count)
-        const boosterList = boosters.map((member, index) => {
+        // Build booster list with proper mentions  
+        const boosterList = boostersArray.map((member, index) => {
             const boostTime = member.premiumSince;
             const timeAgo = `<t:${Math.floor(boostTime.getTime() / 1000)}:R>`;
             return `**${index + 1}.** <@${member.id}> • ${timeAgo}`;
@@ -51,15 +50,14 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
             .setDescription([
                 `**Total Boosts:** \`${boostCount}\` ${boostEmoji}`,
                 `**Boost Level:** \`Level ${boostLevel}\``,
-                `**Boosters:** \`${boosters.size}\``,
+                `**Boosters:** \`${boostersArray.length}\``,
                 '',
                 '───────────────────',
                 '',
-                boosterList.length > 0
+                boostersArray.length > 0
                     ? boosterList.slice(0, 25).join('\n')
                     : '*No boosters yet. Be the first to boost!*',
-                '',
-                boosterList.length > 25 ? `*...and ${boosterList.length - 25} more boosters!*` : ''
+                boostersArray.length > 25 ? `\n*...and ${boostersArray.length - 25} more boosters!*` : ''
             ].join('\n'))
             .setFooter({
                 text: `Thank you for supporting ${guild.name}! 💖`,
@@ -76,22 +74,21 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
         const guildData = await Guild.findOne({ guildId: guild.id });
         const storedMessageId = guildData?.boosterSystem?.messageId;
 
-        // Try to edit existing message, or send new one
-        let message;
+        // Try to edit existing message first
         if (storedMessageId) {
             try {
-                message = await channel.messages.fetch(storedMessageId);
-                await message.edit({ embeds: [embed] });
-            } catch {
-                // Message not found, send new one
-                message = await channel.send({ embeds: [embed] });
-                await saveBoosterMessageId(guild.id, message.id, channelId, bannerUrl);
+                const existingMessage = await channel.messages.fetch(storedMessageId);
+                await existingMessage.edit({ embeds: [embed] });
+                return existingMessage;
+            } catch (err) {
+                // Message was deleted or not found - send new one
+                console.log('Booster message not found, creating new one...');
             }
-        } else {
-            message = await channel.send({ embeds: [embed] });
-            await saveBoosterMessageId(guild.id, message.id, channelId, bannerUrl);
         }
 
+        // Only send new message if no existing message found
+        const message = await channel.send({ embeds: [embed] });
+        await saveBoosterMessageId(guild.id, message.id, channelId, bannerUrl);
         return message;
     } catch (error) {
         console.error('Booster embed update error:', error);
@@ -106,12 +103,10 @@ async function saveBoosterMessageId(guildId, messageId, channelId, bannerUrl) {
     await Guild.findOneAndUpdate(
         { guildId },
         {
-            boosterSystem: {
-                enabled: true,
-                messageId,
-                channelId,
-                bannerUrl
-            }
+            'boosterSystem.enabled': true,
+            'boosterSystem.messageId': messageId,
+            'boosterSystem.channelId': channelId,
+            'boosterSystem.bannerUrl': bannerUrl
         },
         { upsert: true }
     );
@@ -202,7 +197,7 @@ async function updateAllBoosterEmbeds(client) {
  * Get boost emoji based on level
  */
 function getBoostEmoji(level) {
-    const emojis = ['', '🔮', '💎', '👑'];
+    const emojis = ['🚀', '🔮', '💎', '👑'];
     return emojis[level] || '🚀';
 }
 
