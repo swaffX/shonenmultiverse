@@ -1,10 +1,17 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const config = require('../config/config');
+const { handleNewBoost } = require('../systems/boosterSystem');
 
 module.exports = {
     name: Events.GuildMemberUpdate,
     once: false,
     async execute(oldMember, newMember, client) {
+        // Check for new boost
+        if (!oldMember.premiumSince && newMember.premiumSince) {
+            // User just boosted!
+            await handleNewBoost(newMember, client);
+        }
+
         // Check for dangerous role additions
         if (!config.antiNuke.enabled) return;
 
@@ -39,16 +46,16 @@ module.exports = {
                         try {
                             const owner = await client.users.fetch(ownerId);
                             await owner.send({
-                                content: `⚠️ **TEHLİKELİ ROL UYARISI!**\n\nSunucu: **${newMember.guild.name}**\nRol veren: <@${executorId}>\nHedef: <@${newMember.id}>\nRol: **${role.name}** (tehlikeli yetkiler içeriyor)\n\nBu işlemi kontrol etmenizi öneririm.`
+                                content: `⚠️ **DANGEROUS ROLE WARNING!**\n\nServer: **${newMember.guild.name}**\nRole given by: <@${executorId}>\nTarget: <@${newMember.id}>\nRole: **${role.name}** (contains dangerous permissions)\n\nPlease review this action.`
                             });
                         } catch (err) {
-                            console.error(`Owner'a mesaj gönderilemedi: ${ownerId}`);
+                            console.error(`Could not DM owner: ${ownerId}`);
                         }
                     }
                 }
             }
         } catch (error) {
-            console.error('GuildMemberUpdate event hatası:', error);
+            console.error('GuildMemberUpdate event error:', error);
         }
     }
 };

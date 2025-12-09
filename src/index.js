@@ -10,6 +10,7 @@ const loadEvents = require('./handlers/eventHandler');
 const { initAntiRaid } = require('./handlers/antiRaidHandler');
 const { initGiveaways } = require('./systems/giveawaySystem');
 const { initServerStats, loadStatsChannels } = require('./systems/serverStatsSystem');
+const { initBoosterSystem } = require('./systems/boosterSystem');
 const config = require('./config/config');
 const Guild = require('./models/Guild');
 
@@ -90,6 +91,9 @@ client.once('ready', () => {
 
     // Initialize server stats system
     initServerStats(client, 60000); // 1 dakikada bir güncelle
+
+    // Initialize booster system
+    initBoosterSystem(client);
 
     // Load saved stats channels from database
     (async () => {

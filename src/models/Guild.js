@@ -59,6 +59,13 @@ const guildSchema = new mongoose.Schema({
         allMembers: { type: String, default: null },
         members: { type: String, default: null },
         bots: { type: String, default: null }
+    },
+    // Booster showcase system
+    boosterSystem: {
+        enabled: { type: Boolean, default: false },
+        channelId: { type: String, default: null },
+        messageId: { type: String, default: null },
+        bannerUrl: { type: String, default: null }
     }
 }, { timestamps: true });
 
