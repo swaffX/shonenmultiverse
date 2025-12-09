@@ -1,7 +1,9 @@
 // Partial content of interactionCreate.js to update handleInfoSelect function
-const { Events } = require('discord.js');
-const { errorEmbed } = require('../utils/embedBuilder');
+const { Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
+const { errorEmbed, successEmbed } = require('../utils/embedBuilder');
 const { joinGiveaway, leaveGiveaway, updateGiveawayEmbed } = require('../systems/giveawaySystem');
+const { createTicket, closeTicket } = require('../systems/ticketSystem');
+const Guild = require('../models/Guild');
 const logger = require('../utils/logger');
 const config = require('../config/config');
 
@@ -39,6 +41,56 @@ module.exports = {
 
 async function handleButtonInteraction(interaction, client) {
     const customId = interaction.customId;
+
+    // Handle ticket create button
+    if (customId === 'ticket_create') {
+        const modal = new ModalBuilder()
+            .setCustomId('ticket_modal')
+            .setTitle('🎫 Open a Ticket');
+
+        const reasonInput = new TextInputBuilder()
+            .setCustomId('ticket_reason')
+            .setLabel('What do you need help with?')
+            .setPlaceholder('Please describe your issue in detail...')
+            .setStyle(TextInputStyle.Paragraph)
+            .setMinLength(10)
+            .setMaxLength(1000)
+            .setRequired(true);
+
+        const row = new ActionRowBuilder().addComponents(reasonInput);
+        modal.addComponents(row);
+
+        await interaction.showModal(modal);
+        return;
+    }
+
+    // Handle ticket close button
+    if (customId.startsWith('ticket_close_')) {
+        const channelId = customId.replace('ticket_close_', '');
+        const guildData = await Guild.findOne({ guildId: interaction.guild.id });
+
+        if (!guildData?.ticketSystem?.supportRoleId) {
+            return interaction.reply({
+                embeds: [errorEmbed('Error', 'Ticket system not configured.')],
+                ephemeral: true
+            });
+        }
+
+        const result = await closeTicket(interaction, channelId, guildData.ticketSystem.supportRoleId);
+
+        if (result.success) {
+            await interaction.reply({
+                embeds: [successEmbed('Closing', result.message)],
+                ephemeral: true
+            });
+        } else {
+            await interaction.reply({
+                embeds: [errorEmbed('Error', result.message)],
+                ephemeral: true
+            });
+        }
+        return;
+    }
 
     // Handle role buttons
     if (customId.startsWith('role_')) {
@@ -104,7 +156,6 @@ async function handleSelectMenuInteraction(interaction, client) {
 }
 
 async function handleInfoSelect(interaction, client) {
-    const { EmbedBuilder } = require('discord.js');
     const selected = interaction.values[0];
     const { roles } = config.server;
     let embed;
@@ -156,8 +207,39 @@ async function handleInfoSelect(interaction, client) {
             embed = new EmbedBuilder().setColor(config.colors.error).setDescription('Unknown selection.');
     }
 
-    // Ana embed değişmeden, sadece seçen kişiye özel göster
     await interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
-async function handleModalSubmit(interaction, client) { }
+async function handleModalSubmit(interaction, client) {
+    if (interaction.customId === 'ticket_modal') {
+        await interaction.deferReply({ ephemeral: true });
+
+        try {
+            const reason = interaction.fields.getTextInputValue('ticket_reason');
+            const guildData = await Guild.findOne({ guildId: interaction.guild.id });
+
+            if (!guildData?.ticketSystem?.enabled) {
+                return interaction.editReply({
+                    embeds: [errorEmbed('Error', 'Ticket system is not configured.')]
+                });
+            }
+
+            const { ticketChannel, ticketId } = await createTicket(
+                interaction,
+                reason,
+                guildData.ticketSystem.categoryId,
+                guildData.ticketSystem.supportRoleId
+            );
+
+            await interaction.editReply({
+                embeds: [successEmbed('Ticket Created', `Your ticket has been created: <#${ticketChannel.id}>\n\nTicket ID: \`#${ticketId}\``)]
+            });
+        } catch (error) {
+            console.error('Ticket modal error:', error);
+            await interaction.editReply({
+                embeds: [errorEmbed('Error', 'Failed to create ticket. Please try again.')]
+            });
+        }
+    }
+}
+
