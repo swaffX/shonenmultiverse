@@ -45,9 +45,7 @@ module.exports = {
 
     // Status
     statusMessages: [
-        { name: 'Shonen Multiverse', type: 'Playing' },
-        { name: '/help', type: 'Listening' },
-        { name: 'over the server', type: 'Watching' }
+        { name: 'Saving Konoha', type: 'Playing' }
     ],
 
     // Anti-spam
