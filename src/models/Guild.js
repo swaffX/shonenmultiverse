@@ -88,6 +88,15 @@ const guildSchema = new mongoose.Schema({
             voice: { type: String, default: null },
             server: { type: String, default: null }
         }
+    },
+    // Level system
+    levelSystem: {
+        roles: [{
+            level: Number,
+            roleId: String,
+            name: String
+        }],
+        statsMessageId: { type: String, default: null }
     }
 }, { timestamps: true });
 

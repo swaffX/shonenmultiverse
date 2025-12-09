@@ -1,7 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
-
-// XP Settings
+const { assignLevelRole } = require('./statsEmbedSystem');
 const XP_PER_MESSAGE = 15;
 const XP_PER_VOICE_MINUTE = 5;
 const XP_COOLDOWN = 60000; // 1 minute between XP gains
@@ -197,21 +196,7 @@ async function sendLevelUpMessage(guild, user, level, client) {
  * Check and assign level roles
  */
 async function checkLevelRoles(member, level) {
-    // Find highest applicable role for this level
-    const applicableLevels = Object.keys(LEVEL_ROLES)
-        .map(Number)
-        .filter(l => l <= level)
-        .sort((a, b) => b - a);
-
-    for (const roleLevel of applicableLevels) {
-        const roleId = LEVEL_ROLES[roleLevel];
-        if (roleId && member.guild.roles.cache.has(roleId)) {
-            if (!member.roles.cache.has(roleId)) {
-                await member.roles.add(roleId).catch(console.error);
-                console.log(`🎭 Added level ${roleLevel} role to ${member.user.tag}`);
-            }
-        }
-    }
+    await assignLevelRole(member, level);
 }
 
 /**
