@@ -1,5 +1,6 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const { logMemberLeave } = require('../systems/loggingSystem');
+const { deleteUserData } = require('../systems/statsEmbedSystem');
 const config = require('../config/config');
 const Guild = require('../models/Guild');
 
@@ -9,6 +10,9 @@ module.exports = {
     async execute(member, client) {
         // Log member leave
         await logMemberLeave(member).catch(console.error);
+
+        // Delete user level/stats data
+        await deleteUserData(member.id, member.guild.id).catch(console.error);
 
         // Skip bots for goodbye message
         if (member.user.bot) return;
