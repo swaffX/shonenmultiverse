@@ -1,11 +1,15 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const { recordAction, handleNukeAttempt } = require('../systems/protectionSystem');
+const { logBan } = require('../systems/loggingSystem');
 const config = require('../config/config');
 
 module.exports = {
     name: Events.GuildBanAdd,
     once: false,
     async execute(ban, client) {
+        // Log the ban
+        await logBan(ban).catch(console.error);
+
         if (!config.antiNuke.enabled) return;
 
         try {

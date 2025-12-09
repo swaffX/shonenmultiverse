@@ -1,4 +1,5 @@
 const { Events, EmbedBuilder } = require('discord.js');
+const { logMemberLeave } = require('../systems/loggingSystem');
 const config = require('../config/config');
 const Guild = require('../models/Guild');
 
@@ -6,7 +7,10 @@ module.exports = {
     name: Events.GuildMemberRemove,
     once: false,
     async execute(member, client) {
-        // Skip bots
+        // Log member leave
+        await logMemberLeave(member).catch(console.error);
+
+        // Skip bots for goodbye message
         if (member.user.bot) return;
 
         // Send goodbye message

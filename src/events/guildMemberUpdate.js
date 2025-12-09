@@ -1,11 +1,15 @@
 const { Events, AuditLogEvent } = require('discord.js');
 const config = require('../config/config');
 const { handleNewBoost } = require('../systems/boosterSystem');
+const { logRoleUpdate } = require('../systems/loggingSystem');
 
 module.exports = {
     name: Events.GuildMemberUpdate,
     once: false,
     async execute(oldMember, newMember, client) {
+        // Log role changes
+        await logRoleUpdate(oldMember, newMember).catch(console.error);
+
         // Check for new boost
         if (!oldMember.premiumSince && newMember.premiumSince) {
             // User just boosted!

@@ -1,6 +1,7 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const { checkRaid } = require('../handlers/antiRaidHandler');
 const { checkBotAddition } = require('../systems/protectionSystem');
+const { logMemberJoin } = require('../systems/loggingSystem');
 const config = require('../config/config');
 const Guild = require('../models/Guild');
 
@@ -8,6 +9,9 @@ module.exports = {
     name: Events.GuildMemberAdd,
     once: false,
     async execute(member, client) {
+        // Log member join
+        await logMemberJoin(member).catch(console.error);
+
         // Check for bot additions
         if (member.user.bot) {
             await checkBotAddition(member, client);
