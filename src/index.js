@@ -89,7 +89,7 @@ client.once('ready', () => {
     initGiveaways(client);
 
     // Initialize server stats system
-    initServerStats(client, 300000); // 5 dakikada bir güncelle
+    initServerStats(client, 60000); // 1 dakikada bir güncelle
 
     // Load saved stats channels from database
     (async () => {
