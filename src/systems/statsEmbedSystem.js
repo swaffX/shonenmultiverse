@@ -142,7 +142,7 @@ async function updateStatsEmbed(client, period = 'weekly') {
 }
 
 /**
- * Build stats embed for given period
+ * Build stats embed for given period - EXPANDED VERTICAL FORMAT
  */
 async function buildStatsEmbed(guild, period) {
     const topXP = await User.getLeaderboard(guild.id, 5);
@@ -193,7 +193,6 @@ async function buildStatsEmbed(guild, period) {
     let nextResetTimestamp;
 
     if (period === 'weekly') {
-        // Next Monday at 00:00
         const dayOfWeek = now.getDay();
         const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
         const nextMonday = new Date(now);
@@ -201,7 +200,6 @@ async function buildStatsEmbed(guild, period) {
         nextMonday.setHours(0, 0, 0, 0);
         nextResetTimestamp = Math.floor(nextMonday.getTime() / 1000);
     } else {
-        // First day of next month
         const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
         nextResetTimestamp = Math.floor(nextMonth.getTime() / 1000);
     }
@@ -211,7 +209,7 @@ async function buildStatsEmbed(guild, period) {
     return new EmbedBuilder()
         .setColor(period === 'weekly' ? '#5865F2' : '#9B59B6')
         .setAuthor({
-            name: `Server Statistics — ${periodLabel}`,
+            name: `📊 Server Statistics — ${periodLabel}`,
             iconURL: guild.iconURL({ dynamic: true })
         })
         .setTitle(guild.name)
@@ -219,36 +217,41 @@ async function buildStatsEmbed(guild, period) {
         .addFields(
             {
                 name: '🏆 Top XP (All Time)',
-                value: xpLeaders || '*No data*',
-                inline: true
+                value: xpLeaders || '*No data yet*',
+                inline: false
             },
             {
-                name: `💬 ${periodLabel} Messages`,
-                value: msgLeaders || '*No activity*',
-                inline: true
+                name: `💬 ${periodLabel} Top Chatters`,
+                value: msgLeaders || '*No activity yet*',
+                inline: false
             },
             {
-                name: `🎤 ${periodLabel} Voice`,
-                value: voiceLeaders || '*No activity*',
-                inline: true
+                name: `🎤 ${periodLabel} Voice Champions`,
+                value: voiceLeaders || '*No activity yet*',
+                inline: false
             },
             {
-                name: '📈 All Time',
+                name: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+                value: '\u200b',
+                inline: false
+            },
+            {
+                name: '📈 All Time Statistics',
                 value: [
-                    `👥 Users: \`${totalUsers}\``,
-                    `💬 Messages: \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
-                    `🎤 Voice: \`${formatDuration(totalVoice[0]?.total || 0)}\``
+                    `👥 **Tracked Users:** \`${totalUsers}\``,
+                    `💬 **Total Messages:** \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 **Total Voice Time:** \`${formatDuration(totalVoice[0]?.total || 0)}\``
                 ].join('\n'),
-                inline: true
+                inline: false
             },
             {
                 name: `📅 This ${period === 'weekly' ? 'Week' : 'Month'}`,
                 value: [
-                    `💬 Messages: \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
-                    `🎤 Voice: \`${formatDuration(periodVoice[0]?.total || 0)}\``,
-                    `⏰ Resets: <t:${nextResetTimestamp}:R>`
+                    `💬 **Messages:** \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 **Voice Time:** \`${formatDuration(periodVoice[0]?.total || 0)}\``,
+                    `⏰ **Resets:** <t:${nextResetTimestamp}:R>`
                 ].join('\n'),
-                inline: true
+                inline: false
             }
         )
         .setFooter({ text: 'Last Updated' })
@@ -276,18 +279,24 @@ function buildPeriodButtons(currentPeriod) {
 }
 
 /**
- * Handle stats button interaction
+ * Handle stats button interaction - with defer to prevent timeout
  */
 async function handleStatsButton(interaction) {
-    const period = interaction.customId === 'stats_weekly' ? 'weekly' : 'monthly';
-    const embed = await buildStatsEmbed(interaction.guild, period);
-    const row = buildPeriodButtons(period);
+    try {
+        await interaction.deferUpdate();
 
-    await interaction.update({ embeds: [embed], components: [row] });
+        const period = interaction.customId === 'stats_weekly' ? 'weekly' : 'monthly';
+        const embed = await buildStatsEmbed(interaction.guild, period);
+        const row = buildPeriodButtons(period);
+
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch (error) {
+        console.error('Stats button error:', error);
+    }
 }
 
 /**
- * Build leaderboard string with mentions
+ * Build leaderboard string with mentions - NO ABBREVIATIONS
  */
 async function buildLeaderboard(guild, users, field) {
     if (!users || users.length === 0) return null;
@@ -305,7 +314,7 @@ async function buildLeaderboard(guild, users, field) {
 
         let value;
         if (field === 'xp') {
-            value = `L**${user.level}** • \`${user.xp.toLocaleString()}\``;
+            value = `Level **${user.level}** • \`${user.xp.toLocaleString()} XP\``;
         } else if (field === 'weeklyMessages' || field === 'monthlyMessages') {
             const count = field === 'weeklyMessages' ? user.weeklyMessages : user.monthlyMessages;
             value = `\`${count}\` messages`;
@@ -314,7 +323,7 @@ async function buildLeaderboard(guild, users, field) {
             value = `\`${formatDuration(time)}\``;
         }
 
-        lines.push(`${medals[i]} <@${user.oderId}> ${value}`);
+        lines.push(`${medals[i]} <@${user.oderId}> — ${value}`);
     }
 
     return lines.length > 0 ? lines.join('\n') : null;

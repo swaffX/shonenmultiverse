@@ -39,13 +39,13 @@ module.exports = {
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
         const xpLeaders = topXP.slice(0, 5).map((u, i) =>
-            `${medals[i]} <@${u.oderId}> • Level **${u.level}**`
+            `${medals[i]} <@${u.oderId}> — Level **${u.level}** • \`${u.xp.toLocaleString()} XP\``
         ).join('\n') || '*No data*';
 
         const msgLeaders = topMessages
             .filter(u => u.weeklyMessages > 0)
             .slice(0, 5)
-            .map((u, i) => `${medals[i]} <@${u.oderId}> • \`${u.weeklyMessages}\``)
+            .map((u, i) => `${medals[i]} <@${u.oderId}> — \`${u.weeklyMessages}\` messages`)
             .join('\n') || '*No activity*';
 
         const voiceLeaders = topVoice
@@ -77,19 +77,19 @@ module.exports = {
             .setDescription(`**${interaction.guild.name}** Leaderboards & Your Stats`)
             .addFields(
                 {
-                    name: '🏆 XP Leaderboard',
+                    name: '🏆 XP Leaderboard (All Time)',
                     value: xpLeaders,
-                    inline: true
+                    inline: false
                 },
                 {
-                    name: '💬 Weekly Messages',
+                    name: '💬 Weekly Top Chatters',
                     value: msgLeaders,
-                    inline: true
+                    inline: false
                 },
                 {
-                    name: '🎤 Weekly Voice',
+                    name: '🎤 Weekly Voice Champions',
                     value: voiceLeaders,
-                    inline: true
+                    inline: false
                 },
                 {
                     name: '\u200b',
