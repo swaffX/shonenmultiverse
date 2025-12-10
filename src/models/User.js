@@ -43,12 +43,12 @@ const userSchema = new mongoose.Schema({
         default: new Map()
     },
 
-    // Moderation
-    warnings: [{
-        moderatorId: String,
-        reason: String,
-        date: { type: Date, default: Date.now }
-    }],
+    // Roblox Verification
+    robloxId: { type: String, default: null },
+    robloxUsername: { type: String, default: null },
+    isVerified: { type: Boolean, default: false },
+
+    // Moderation Status
     isMuted: { type: Boolean, default: false },
     muteExpires: { type: Date, default: null }
 }, { timestamps: true });

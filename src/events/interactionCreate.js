@@ -13,6 +13,7 @@ const {
     handleWhitelistModal
 } = require('../systems/customVoiceSystem');
 const Guild = require('../models/Guild');
+const User = require('../models/User');
 const logger = require('../utils/logger');
 const config = require('../config/config');
 
@@ -50,6 +51,60 @@ module.exports = {
 
 async function handleButtonInteraction(interaction, client) {
     const customId = interaction.customId;
+
+    // Handle verification check
+    if (customId.startsWith('verify_check_')) {
+        await interaction.deferReply({ ephemeral: true });
+        const parts = customId.split('_');
+        const robloxId = parts[2];
+        const verifyCode = parts.slice(3).join('_');
+
+        try {
+            const blurbRes = await fetch(`https://users.roblox.com/v1/users/${robloxId}`);
+            if (!blurbRes.ok) throw new Error('Failed to fetch profile');
+            const blurbData = await blurbRes.json();
+            const blurb = blurbData.description || '';
+
+            if (blurb.includes(verifyCode)) {
+                // Success
+                let user = await User.findOne({ oderId: interaction.user.id, guildId: interaction.guild.id });
+                if (!user) {
+                    user = new User({
+                        oderId: interaction.user.id,
+                        guildId: interaction.guild.id
+                    });
+                }
+
+                user.robloxId = robloxId;
+                user.robloxUsername = blurbData.name;
+                user.isVerified = true;
+                await user.save();
+
+                // Add Verified Role if configured
+                const roleId = config.server.roles.verified;
+                if (roleId) {
+                    const role = interaction.guild.roles.cache.get(roleId);
+                    if (role) {
+                        await interaction.member.roles.add(role).catch(err => console.error('Failed to add verified role:', err));
+                    }
+                }
+
+                await interaction.editReply({
+                    content: `✅ **Success!** You have been verified as **${blurbData.name}**!`,
+                    embeds: []
+                });
+            } else {
+                await interaction.editReply({
+                    content: `❌ I couldn't find the code \`${verifyCode}\` in your profile blurb.\nPlease add it and try again.`,
+                    embeds: []
+                });
+            }
+        } catch (error) {
+            console.error('Verify check error:', error);
+            await interaction.editReply({ content: '❌ An error occurred while checking verification.' });
+        }
+        return;
+    }
 
     // Handle ticket create button
     if (customId === 'ticket_create') {
