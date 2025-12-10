@@ -8,16 +8,16 @@ const STATS_CHANNEL_ID = '1448093485205815437';
 
 // Level roles configuration - Anime themed (highest first)
 const LEVEL_ROLE_CONFIG = [
-    { level: 100, name: '👑 Pirate King', color: '#FFD700' },           // One Piece - Luffy's dream
-    { level: 75, name: '⚡ Hokage', color: '#FF6B35' },                 // Naruto - highest rank
-    { level: 50, name: '🔥 Hashira', color: '#E91E63' },               // Demon Slayer - elite rank
-    { level: 40, name: '💀 Espada', color: '#9B59B6' },                // Bleach - top hollows
-    { level: 30, name: '🌀 Jonin', color: '#3498DB' },                 // Naruto - high ninja
-    { level: 25, name: '⚔️ Demon Slayer', color: '#E74C3C' },          // Demon Slayer - corps member
-    { level: 20, name: '🏴‍☠️ Supernova', color: '#1ABC9C' },             // One Piece - rising pirates
-    { level: 15, name: '👊 Chunin', color: '#F39C12' },                // Naruto - mid ninja
-    { level: 10, name: '⭐ Soul Reaper', color: '#9B59B6' },           // Bleach - shinigami
-    { level: 5, name: '🌱 Genin', color: '#95A5A6' }                   // Naruto - beginner ninja
+    { level: 100, name: 'Pirate King', color: '#FFD700' },       // One Piece
+    { level: 75, name: 'Hokage', color: '#FF6B35' },             // Naruto
+    { level: 50, name: 'Hashira', color: '#E91E63' },            // Demon Slayer
+    { level: 40, name: 'Espada', color: '#9B59B6' },             // Bleach
+    { level: 30, name: 'Jonin', color: '#3498DB' },              // Naruto
+    { level: 25, name: 'Demon Slayer', color: '#E74C3C' },       // Demon Slayer
+    { level: 20, name: 'Supernova', color: '#1ABC9C' },          // One Piece
+    { level: 15, name: 'Chunin', color: '#F39C12' },             // Naruto
+    { level: 10, name: 'Soul Reaper', color: '#9B59B6' },        // Bleach
+    { level: 5, name: 'Genin', color: '#95A5A6' }                // Naruto
 ];
 
 /**

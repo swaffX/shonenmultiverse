@@ -198,22 +198,22 @@ async function handleInfoSelect(interaction, client) {
                     {
                         name: '⚔️ Level Roles',
                         value: [
-                            '`Lv.100` 👑 Pirate King',
-                            '`Lv.75` ⚡ Hokage',
-                            '`Lv.50` 🔥 Hashira',
-                            '`Lv.40` 💀 Espada',
-                            '`Lv.30` 🌀 Jonin'
+                            '`Lv.100` Pirate King',
+                            '`Lv.75` Hokage',
+                            '`Lv.50` Hashira',
+                            '`Lv.40` Espada',
+                            '`Lv.30` Jonin'
                         ].join('\n'),
                         inline: true
                     },
                     {
                         name: '\u200b',
                         value: [
-                            '`Lv.25` ⚔️ Demon Slayer',
-                            '`Lv.20` 🏴‍☠️ Supernova',
-                            '`Lv.15` 👊 Chunin',
-                            '`Lv.10` ⭐ Soul Reaper',
-                            '`Lv.5` 🌱 Genin'
+                            '`Lv.25` Demon Slayer',
+                            '`Lv.20` Supernova',
+                            '`Lv.15` Chunin',
+                            '`Lv.10` Soul Reaper',
+                            '`Lv.5` Genin'
                         ].join('\n'),
                         inline: true
                     }
