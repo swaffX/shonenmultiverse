@@ -2,8 +2,8 @@ const { Events, EmbedBuilder } = require('discord.js');
 const { checkRaid } = require('../handlers/antiRaidHandler');
 const { checkBotAddition } = require('../systems/protectionSystem');
 const { logMemberJoin } = require('../systems/loggingSystem');
-const config = require('../config/config');
 const Guild = require('../models/Guild');
+const { createWelcomeImage } = require('../systems/welcomeImageSystem');
 
 module.exports = {
     name: Events.GuildMemberAdd,
@@ -83,11 +83,18 @@ async function sendWelcomeMessage(member, client) {
             })
             .setTimestamp();
 
-        if (guildData.welcome.bannerUrl) {
-            welcomeEmbed.setImage(guildData.welcome.bannerUrl);
-        }
+        // Generate custom welcome image
+        const attachment = await createWelcomeImage(member);
 
-        await channel.send({ embeds: [welcomeEmbed] });
+        if (attachment) {
+            welcomeEmbed.setImage('attachment://welcome.png');
+            await channel.send({ embeds: [welcomeEmbed], files: [attachment] });
+        } else {
+            if (guildData.welcome.bannerUrl) {
+                welcomeEmbed.setImage(guildData.welcome.bannerUrl);
+            }
+            await channel.send({ embeds: [welcomeEmbed] });
+        }
         console.log(`👋 Welcome message sent for ${member.user.tag} in ${member.guild.name}`);
     } catch (error) {
         console.error('Welcome message error:', error);
