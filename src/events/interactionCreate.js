@@ -190,13 +190,35 @@ async function handleInfoSelect(interaction, client) {
             embed = new EmbedBuilder()
                 .setColor(config.colors.info)
                 .setTitle('🎭 Server Roles')
-                .setDescription('Here are the main roles on our server:')
+                .setDescription('Here are the roles on our server:')
                 .addFields(
                     { name: '👑 Management', value: `<@&${roles.owner}>\n<@&${roles.developer}>`, inline: true },
                     { name: '🛡️ Staff', value: `<@&${roles.admin}>\n<@&${roles.moderator}>`, inline: true },
-                    { name: '👥 Members', value: `<@&${roles.supporter}>\n<@&${roles.verified}>\n<@&${roles.unverified}>`, inline: true }
+                    { name: '👥 Members', value: `<@&${roles.supporter}>\n<@&${roles.verified}>\n<@&${roles.unverified}>`, inline: true },
+                    {
+                        name: '⚔️ Level Roles',
+                        value: [
+                            '`Lv.100` 👑 Pirate King',
+                            '`Lv.75` ⚡ Hokage',
+                            '`Lv.50` 🔥 Hashira',
+                            '`Lv.40` 💀 Espada',
+                            '`Lv.30` 🌀 Jonin'
+                        ].join('\n'),
+                        inline: true
+                    },
+                    {
+                        name: '\u200b',
+                        value: [
+                            '`Lv.25` ⚔️ Demon Slayer',
+                            '`Lv.20` 🏴‍☠️ Supernova',
+                            '`Lv.15` 👊 Chunin',
+                            '`Lv.10` ⭐ Soul Reaper',
+                            '`Lv.5` 🌱 Genin'
+                        ].join('\n'),
+                        inline: true
+                    }
                 )
-                .setFooter({ text: 'Shonen Multiverse' })
+                .setFooter({ text: 'Shonen Multiverse • Level up by chatting and being in voice!' })
                 .setTimestamp();
             break;
 
