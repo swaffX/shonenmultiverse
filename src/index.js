@@ -203,6 +203,52 @@ const port = 3000;
 
 app.get('/', (req, res) => res.send('Shonen Multiverse Bot is running!'));
 
+// Privacy Policy Endpoint
+app.get('/privacy', (req, res) => {
+    res.send(`
+        <h1>Privacy Policy</h1>
+        <p><strong>Effective Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <p>Shonen Multiverse ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our services.</p>
+        <h2>1. Information We Collect</h2>
+        <p>We may collect the following information:</p>
+        <ul>
+            <li>Discord User ID and Username</li>
+            <li>Roblox User ID and Username (via OAuth2)</li>
+            <li>Server interaction data (commands usage, leveling data)</li>
+        </ul>
+        <h2>2. How We Use Your Information</h2>
+        <p>We use the collected information to:</p>
+        <ul>
+            <li>Verify your Roblox account ownership.</li>
+            <li>Sync your Discord roles with your Roblox rank.</li>
+            <li>Track your activity statistics within the Discord server.</li>
+        </ul>
+        <h2>3. Data Storage</h2>
+        <p>Your data is stored securely in our database. We do not sell or share your personal data with third parties.</p>
+        <h2>4. Contact Us</h2>
+        <p>If you have any questions, please contact the server administration via Discord.</p>
+    `);
+});
+
+// Terms of Service Endpoint
+app.get('/tos', (req, res) => {
+    res.send(`
+        <h1>Terms of Service</h1>
+        <p><strong>Effective Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <p>By using the Shonen Multiverse Bot, you agree to constitute a binding agreement between you and us.</p>
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using our bot, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not use the service.</p>
+        <h2>2. Usage Rules</h2>
+        <ul>
+            <li>You must not use the bot for any illegal purposes.</li>
+            <li>You must not attempt to exploit, hack, or disrupt the bot's services.</li>
+            <li>We reserve the right to ban any user from using the bot at our discretion.</li>
+        </ul>
+        <h2>3. Disclaimer</h2>
+        <p>The service is provided "AS IS" and "AS AVAILABLE" basis. We make no warranties regarding the uptime or availability of the bot.</p>
+    `);
+});
+
 const axios = require('axios');
 const User = require('./models/User');
 
