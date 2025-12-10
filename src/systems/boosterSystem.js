@@ -8,6 +8,15 @@ const Guild = require('../models/Guild');
 async function initBoosterSystem(client) {
     console.log('🚀 Booster system initialized');
 
+    // Initial fetch to ensure cache is populated
+    for (const [id, guild] of client.guilds.cache) {
+        try {
+            await guild.members.fetch();
+        } catch (err) {
+            console.error(`Failed to fetch members for ${guild.name}:`, err);
+        }
+    }
+
     // Update booster embeds periodically
     setInterval(() => {
         updateAllBoosterEmbeds(client);
@@ -21,9 +30,6 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
     try {
         const channel = guild.channels.cache.get(channelId);
         if (!channel) return null;
-
-        // Fetch all members to ensure cache is complete
-        await guild.members.fetch();
 
         // Get all boosters - convert to array properly
         const boostersArray = Array.from(
