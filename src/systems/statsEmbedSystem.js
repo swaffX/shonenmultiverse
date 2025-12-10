@@ -19,11 +19,8 @@ const LEVEL_ROLE_CONFIG = [
     { level: 5, name: '🌱 Newcomer', color: '#95A5A6' }
 ];
 
-// Current view state (weekly or monthly)
-const viewStates = new Map();
-
 /**
- * Create level roles in the guild (highest first for proper hierarchy)
+ * Create level roles in the guild
  */
 async function createLevelRoles(guild) {
     const createdRoles = [];
@@ -209,13 +206,12 @@ async function buildStatsEmbed(guild, period) {
         nextResetTimestamp = Math.floor(nextMonth.getTime() / 1000);
     }
 
-    const periodLabel = period === 'weekly' ? '📅 Haftalık' : '📆 Aylık';
-    const periodEmoji = period === 'weekly' ? '📅' : '📆';
+    const periodLabel = period === 'weekly' ? 'Weekly' : 'Monthly';
 
     return new EmbedBuilder()
         .setColor(period === 'weekly' ? '#5865F2' : '#9B59B6')
         .setAuthor({
-            name: `📊 Server Statistics — ${periodLabel}`,
+            name: `Server Statistics — ${periodLabel}`,
             iconURL: guild.iconURL({ dynamic: true })
         })
         .setTitle(guild.name)
@@ -223,39 +219,34 @@ async function buildStatsEmbed(guild, period) {
         .addFields(
             {
                 name: '🏆 Top XP (All Time)',
-                value: xpLeaders || '*No data yet*',
-                inline: false
+                value: xpLeaders || '*No data*',
+                inline: true
             },
             {
-                name: `💬 ${periodLabel} Top Chatters`,
-                value: msgLeaders || '*No data*',
-                inline: false
+                name: `💬 ${periodLabel} Messages`,
+                value: msgLeaders || '*No activity*',
+                inline: true
             },
             {
-                name: `🎤 ${periodLabel} Voice Champions`,
-                value: voiceLeaders || '*No data*',
-                inline: false
+                name: `🎤 ${periodLabel} Voice`,
+                value: voiceLeaders || '*No activity*',
+                inline: true
             },
             {
-                name: '───────────────────────',
-                value: '\u200b',
-                inline: false
-            },
-            {
-                name: '📈 All Time Stats',
+                name: '📈 All Time',
                 value: [
-                    `👥 **Users:** \`${totalUsers}\``,
-                    `💬 **Messages:** \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
-                    `🎤 **Voice:** \`${formatDuration(totalVoice[0]?.total || 0)}\``
+                    `👥 Users: \`${totalUsers}\``,
+                    `💬 Messages: \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 Voice: \`${formatDuration(totalVoice[0]?.total || 0)}\``
                 ].join('\n'),
                 inline: true
             },
             {
-                name: `${periodEmoji} Bu ${period === 'weekly' ? 'Hafta' : 'Ay'}`,
+                name: `📅 This ${period === 'weekly' ? 'Week' : 'Month'}`,
                 value: [
-                    `💬 **Messages:** \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
-                    `🎤 **Voice:** \`${formatDuration(periodVoice[0]?.total || 0)}\``,
-                    `⏰ **Resets:** <t:${nextResetTimestamp}:R>`
+                    `💬 Msgs: \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 Voice: \`${formatDuration(periodVoice[0]?.total || 0)}\``,
+                    `⏰ Resets: <t:${nextResetTimestamp}:R>`
                 ].join('\n'),
                 inline: true
             }
@@ -271,13 +262,13 @@ function buildPeriodButtons(currentPeriod) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('stats_weekly')
-            .setLabel('Haftalık')
+            .setLabel('Weekly')
             .setEmoji('📅')
             .setStyle(currentPeriod === 'weekly' ? ButtonStyle.Primary : ButtonStyle.Secondary)
             .setDisabled(currentPeriod === 'weekly'),
         new ButtonBuilder()
             .setCustomId('stats_monthly')
-            .setLabel('Aylık')
+            .setLabel('Monthly')
             .setEmoji('📆')
             .setStyle(currentPeriod === 'monthly' ? ButtonStyle.Primary : ButtonStyle.Secondary)
             .setDisabled(currentPeriod === 'monthly')
@@ -314,16 +305,16 @@ async function buildLeaderboard(guild, users, field) {
 
         let value;
         if (field === 'xp') {
-            value = `Level **${user.level}** • \`${user.xp.toLocaleString()} XP\``;
+            value = `L**${user.level}** • \`${user.xp.toLocaleString()}\``;
         } else if (field === 'weeklyMessages' || field === 'monthlyMessages') {
             const count = field === 'weeklyMessages' ? user.weeklyMessages : user.monthlyMessages;
-            value = `\`${count}\` messages`;
+            value = `\`${count}\` msgs`;
         } else if (field === 'weeklyVoiceTime' || field === 'monthlyVoiceTime') {
             const time = field === 'weeklyVoiceTime' ? user.weeklyVoiceTime : user.monthlyVoiceTime;
             value = `\`${formatDuration(time)}\``;
         }
 
-        lines.push(`${medals[i]} <@${user.oderId}> — ${value}`);
+        lines.push(`${medals[i]} <@${user.oderId}> ${value}`);
     }
 
     return lines.length > 0 ? lines.join('\n') : null;

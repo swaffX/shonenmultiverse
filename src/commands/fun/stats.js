@@ -33,35 +33,36 @@ module.exports = {
 
         const levelRoleText = applicableRole
             ? `<@&${applicableRole.roleId}>`
-            : '*No level role yet*';
+            : 'None';
 
         // Build leaderboard strings
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
         const xpLeaders = topXP.slice(0, 5).map((u, i) =>
-            `${medals[i]} <@${u.oderId}> — L**${u.level}** • \`${u.xp.toLocaleString()} XP\``
+            `${medals[i]} <@${u.oderId}> • Level **${u.level}**`
         ).join('\n') || '*No data*';
 
         const msgLeaders = topMessages
             .filter(u => u.weeklyMessages > 0)
             .slice(0, 5)
-            .map((u, i) => `${medals[i]} <@${u.oderId}> — \`${u.weeklyMessages}\` msgs`)
-            .join('\n') || '*No messages this week*';
+            .map((u, i) => `${medals[i]} <@${u.oderId}> • \`${u.weeklyMessages}\``)
+            .join('\n') || '*No activity*';
 
         const voiceLeaders = topVoice
             .filter(u => u.weeklyVoiceTime > 0)
             .slice(0, 5)
-            .map((u, i) => `${medals[i]} <@${u.oderId}> — \`${formatDuration(u.weeklyVoiceTime)}\``)
-            .join('\n') || '*No voice activity this week*';
+            .map((u, i) => `${medals[i]} <@${u.oderId}> • \`${formatDuration(u.weeklyVoiceTime)}\``)
+            .join('\n') || '*No activity*';
 
         // Create progress bar
         const filled = Math.floor(percentage / 10);
         const empty = 10 - filled;
         const progressBar = '█'.repeat(filled) + '░'.repeat(empty);
 
-        // Get weekly reset time
+        // Calculate next Monday (weekly reset)
         const now = new Date();
-        const daysUntilMonday = ((1 - now.getDay()) + 7) % 7 || 7;
+        const dayOfWeek = now.getDay();
+        const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
         const nextMonday = new Date(now);
         nextMonday.setDate(now.getDate() + daysUntilMonday);
         nextMonday.setHours(0, 0, 0, 0);
@@ -69,30 +70,30 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor('#5865F2')
             .setAuthor({
-                name: '📊 Server Statistics',
+                name: 'Server Statistics',
                 iconURL: interaction.guild.iconURL({ dynamic: true })
             })
-            .setTitle(`${interaction.guild.name} Leaderboards`)
-            .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 256 }))
+            .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true, size: 256 }))
+            .setDescription(`**${interaction.guild.name}** Leaderboards & Your Stats`)
             .addFields(
                 {
-                    name: '🏆 Top XP (All Time)',
+                    name: '🏆 XP Leaderboard',
                     value: xpLeaders,
-                    inline: false
+                    inline: true
                 },
                 {
-                    name: '💬 Weekly Top Chatters',
+                    name: '💬 Weekly Messages',
                     value: msgLeaders,
-                    inline: false
+                    inline: true
                 },
                 {
-                    name: '🎤 Weekly Voice Champions',
+                    name: '🎤 Weekly Voice',
                     value: voiceLeaders,
-                    inline: false
+                    inline: true
                 },
                 {
-                    name: '═══════════════════════════',
-                    value: `📋 **Your Stats** — <@${userId}>`,
+                    name: '\u200b',
+                    value: `**Your Stats** — <@${userId}>`,
                     inline: false
                 },
                 {
@@ -111,32 +112,28 @@ module.exports = {
                     inline: true
                 },
                 {
-                    name: '📈 Progress to Next Level',
-                    value: `${progressBar} ${percentage}%\n\`${progressXP}/${neededXP} XP\``,
+                    name: '📈 Progress',
+                    value: `${progressBar} **${percentage}%**\n\`${progressXP}/${neededXP} XP\``,
                     inline: false
                 },
                 {
-                    name: '🎭 Level Role',
+                    name: '🎭 Role',
                     value: levelRoleText,
                     inline: true
                 },
                 {
-                    name: '💬 Total Messages',
-                    value: `\`${user.totalMessages.toLocaleString()}\``,
+                    name: '💬 Messages',
+                    value: `${user.totalMessages.toLocaleString()}`,
                     inline: true
                 },
                 {
-                    name: '🎤 Total Voice',
-                    value: `\`${formatDuration(user.totalVoiceTime)}\``,
+                    name: '🎤 Voice',
+                    value: `${formatDuration(user.totalVoiceTime || 0)}`,
                     inline: true
                 },
                 {
-                    name: '📅 This Week',
-                    value: [
-                        `💬 **Messages:** \`${user.weeklyMessages}\``,
-                        `🎤 **Voice:** \`${formatDuration(user.weeklyVoiceTime)}\``,
-                        `⏰ **Resets:** <t:${Math.floor(nextMonday.getTime() / 1000)}:R>`
-                    ].join('\n'),
+                    name: '📅 Weekly',
+                    value: `💬 \`${user.weeklyMessages || 0}\` msgs • 🎤 \`${formatDuration(user.weeklyVoiceTime || 0)}\`\n⏰ Resets <t:${Math.floor(nextMonday.getTime() / 1000)}:R>`,
                     inline: false
                 }
             )
