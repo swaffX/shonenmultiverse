@@ -43,7 +43,7 @@ const reactionRoleSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Index for faster lookups
-reactionRoleSchema.index({ messageId: 1 });
+// Index removed (handled by unique: true in schema)
 
 // Static method to find by message ID
 reactionRoleSchema.statics.findByMessage = async function (messageId) {
