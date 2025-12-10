@@ -1,4 +1,4 @@
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const User = require('../models/User');
 const Guild = require('../models/Guild');
 const { formatDuration } = require('../utils/levelUtils');
@@ -19,7 +19,8 @@ const LEVEL_ROLE_CONFIG = [
     { level: 5, name: '🌱 Newcomer', color: '#95A5A6' }
 ];
 
-let statsMessageId = null;
+// Current view state (weekly or monthly)
+const viewStates = new Map();
 
 /**
  * Create level roles in the guild (highest first for proper hierarchy)
@@ -27,9 +28,7 @@ let statsMessageId = null;
 async function createLevelRoles(guild) {
     const createdRoles = [];
 
-    // Create roles from highest to lowest so hierarchy is correct
     for (const config of LEVEL_ROLE_CONFIG) {
-        // Check if role already exists
         let role = guild.roles.cache.find(r => r.name === config.name);
 
         if (!role) {
@@ -44,7 +43,6 @@ async function createLevelRoles(guild) {
         createdRoles.push({ level: config.level, roleId: role.id, name: config.name });
     }
 
-    // Save to database
     await Guild.findOneAndUpdate(
         { guildId: guild.id },
         { 'levelSystem.roles': createdRoles },
@@ -70,7 +68,6 @@ async function assignLevelRole(member, level) {
         const levelRoles = await getLevelRoles(member.guild.id);
         if (levelRoles.length === 0) return;
 
-        // Find highest applicable role
         const applicableRoles = levelRoles
             .filter(r => r.level <= level)
             .sort((a, b) => b.level - a.level);
@@ -79,14 +76,12 @@ async function assignLevelRole(member, level) {
 
         const targetRole = applicableRoles[0];
 
-        // Remove all other level roles
         for (const roleConfig of levelRoles) {
             if (member.roles.cache.has(roleConfig.roleId) && roleConfig.roleId !== targetRole.roleId) {
                 await member.roles.remove(roleConfig.roleId).catch(() => { });
             }
         }
 
-        // Add the target role
         if (!member.roles.cache.has(targetRole.roleId)) {
             await member.roles.add(targetRole.roleId);
             console.log(`🎭 Assigned ${targetRole.name} to ${member.user.tag}`);
@@ -102,132 +97,41 @@ async function assignLevelRole(member, level) {
 async function initStatsEmbed(client) {
     console.log('📊 Stats embed system initializing...');
 
-    // Update every 30 seconds
     setInterval(async () => {
-        await updateStatsEmbed(client);
+        await updateStatsEmbed(client, 'weekly');
     }, 30000);
 
-    // Initial update
-    setTimeout(() => updateStatsEmbed(client), 5000);
+    setTimeout(() => updateStatsEmbed(client, 'weekly'), 5000);
 }
 
 /**
  * Update the stats embed
  */
-async function updateStatsEmbed(client) {
+async function updateStatsEmbed(client, period = 'weekly') {
     try {
         for (const [, guild] of client.guilds.cache) {
             const channel = guild.channels.cache.get(STATS_CHANNEL_ID);
             if (!channel) continue;
 
             const guildData = await Guild.findOne({ guildId: guild.id });
+            const embed = await buildStatsEmbed(guild, period);
+            const row = buildPeriodButtons(period);
 
-            // Get leaderboard data
-            const topXP = await User.getLeaderboard(guild.id, 10);
-            const topMessages = await User.getWeeklyMessageLeaders(guild.id, 10);
-            const topVoice = await User.getWeeklyVoiceLeaders(guild.id, 10);
-
-            // Build leaderboard strings
-            const xpLeaders = await buildLeaderboard(guild, topXP.slice(0, 10), 'xp');
-            const msgLeaders = await buildLeaderboard(guild, topMessages.slice(0, 10), 'weeklyMessages');
-            const voiceLeaders = await buildLeaderboard(guild, topVoice.slice(0, 10), 'weeklyVoiceTime');
-
-            // Calculate server totals
-            const totalUsers = await User.countDocuments({ guildId: guild.id });
-            const totalMessages = await User.aggregate([
-                { $match: { guildId: guild.id } },
-                { $group: { _id: null, total: { $sum: '$totalMessages' } } }
-            ]);
-            const totalVoice = await User.aggregate([
-                { $match: { guildId: guild.id } },
-                { $group: { _id: null, total: { $sum: '$totalVoiceTime' } } }
-            ]);
-            const weeklyMsgs = await User.aggregate([
-                { $match: { guildId: guild.id } },
-                { $group: { _id: null, total: { $sum: '$weeklyMessages' } } }
-            ]);
-            const weeklyVoice = await User.aggregate([
-                { $match: { guildId: guild.id } },
-                { $group: { _id: null, total: { $sum: '$weeklyVoiceTime' } } }
-            ]);
-
-            // Get weekly reset time (next Monday)
-            const now = new Date();
-            const daysUntilMonday = ((1 - now.getDay()) + 7) % 7 || 7;
-            const nextMonday = new Date(now);
-            nextMonday.setDate(now.getDate() + daysUntilMonday);
-            nextMonday.setHours(0, 0, 0, 0);
-
-            const embed = new EmbedBuilder()
-                .setColor('#5865F2')
-                .setAuthor({
-                    name: '📊 Server Statistics & Leaderboards',
-                    iconURL: guild.iconURL({ dynamic: true })
-                })
-                .setTitle(guild.name)
-                .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
-                .addFields(
-                    {
-                        name: '🏆 Top XP (All Time)',
-                        value: xpLeaders || '*No data yet*',
-                        inline: false
-                    },
-                    {
-                        name: '💬 Weekly Top Chatters',
-                        value: msgLeaders || '*No messages this week*',
-                        inline: false
-                    },
-                    {
-                        name: '🎤 Weekly Voice Champions',
-                        value: voiceLeaders || '*No voice activity this week*',
-                        inline: false
-                    },
-                    {
-                        name: '───────────────────────',
-                        value: '\u200b',
-                        inline: false
-                    },
-                    {
-                        name: '📈 All Time Stats',
-                        value: [
-                            `👥 **Tracked Users:** \`${totalUsers}\``,
-                            `💬 **Total Messages:** \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
-                            `🎤 **Total Voice Time:** \`${formatDuration(totalVoice[0]?.total || 0)}\``
-                        ].join('\n'),
-                        inline: true
-                    },
-                    {
-                        name: '📅 This Week',
-                        value: [
-                            `💬 **Messages:** \`${(weeklyMsgs[0]?.total || 0).toLocaleString()}\``,
-                            `🎤 **Voice Time:** \`${formatDuration(weeklyVoice[0]?.total || 0)}\``,
-                            `⏰ **Resets:** <t:${Math.floor(nextMonday.getTime() / 1000)}:R>`
-                        ].join('\n'),
-                        inline: true
-                    }
-                )
-                .setFooter({
-                    text: `Last Updated`
-                })
-                .setTimestamp();
-
-            // Try to edit existing message or send new
             const storedMessageId = guildData?.levelSystem?.statsMessageId;
 
             if (storedMessageId) {
                 try {
                     const message = await channel.messages.fetch(storedMessageId);
-                    await message.edit({ embeds: [embed] });
+                    await message.edit({ embeds: [embed], components: [row] });
                 } catch {
-                    // Message deleted, send new
-                    const newMsg = await channel.send({ embeds: [embed] });
+                    const newMsg = await channel.send({ embeds: [embed], components: [row] });
                     await Guild.findOneAndUpdate(
                         { guildId: guild.id },
                         { 'levelSystem.statsMessageId': newMsg.id }
                     );
                 }
             } else {
-                const newMsg = await channel.send({ embeds: [embed] });
+                const newMsg = await channel.send({ embeds: [embed], components: [row] });
                 await Guild.findOneAndUpdate(
                     { guildId: guild.id },
                     { 'levelSystem.statsMessageId': newMsg.id },
@@ -241,29 +145,184 @@ async function updateStatsEmbed(client) {
 }
 
 /**
+ * Build stats embed for given period
+ */
+async function buildStatsEmbed(guild, period) {
+    const topXP = await User.getLeaderboard(guild.id, 5);
+
+    let topMessages, topVoice, periodMsgs, periodVoice;
+
+    if (period === 'weekly') {
+        topMessages = await User.getWeeklyMessageLeaders(guild.id, 5);
+        topVoice = await User.getWeeklyVoiceLeaders(guild.id, 5);
+        periodMsgs = await User.aggregate([
+            { $match: { guildId: guild.id } },
+            { $group: { _id: null, total: { $sum: '$weeklyMessages' } } }
+        ]);
+        periodVoice = await User.aggregate([
+            { $match: { guildId: guild.id } },
+            { $group: { _id: null, total: { $sum: '$weeklyVoiceTime' } } }
+        ]);
+    } else {
+        topMessages = await User.getMonthlyMessageLeaders(guild.id, 5);
+        topVoice = await User.getMonthlyVoiceLeaders(guild.id, 5);
+        periodMsgs = await User.aggregate([
+            { $match: { guildId: guild.id } },
+            { $group: { _id: null, total: { $sum: '$monthlyMessages' } } }
+        ]);
+        periodVoice = await User.aggregate([
+            { $match: { guildId: guild.id } },
+            { $group: { _id: null, total: { $sum: '$monthlyVoiceTime' } } }
+        ]);
+    }
+
+    const xpLeaders = await buildLeaderboard(guild, topXP, 'xp');
+    const msgLeaders = await buildLeaderboard(guild, topMessages, period === 'weekly' ? 'weeklyMessages' : 'monthlyMessages');
+    const voiceLeaders = await buildLeaderboard(guild, topVoice, period === 'weekly' ? 'weeklyVoiceTime' : 'monthlyVoiceTime');
+
+    // Calculate totals
+    const totalUsers = await User.countDocuments({ guildId: guild.id });
+    const totalMessages = await User.aggregate([
+        { $match: { guildId: guild.id } },
+        { $group: { _id: null, total: { $sum: '$totalMessages' } } }
+    ]);
+    const totalVoice = await User.aggregate([
+        { $match: { guildId: guild.id } },
+        { $group: { _id: null, total: { $sum: '$totalVoiceTime' } } }
+    ]);
+
+    // Calculate next reset time
+    const now = new Date();
+    let nextResetTimestamp;
+
+    if (period === 'weekly') {
+        // Next Monday at 00:00
+        const dayOfWeek = now.getDay();
+        const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+        const nextMonday = new Date(now);
+        nextMonday.setDate(now.getDate() + daysUntilMonday);
+        nextMonday.setHours(0, 0, 0, 0);
+        nextResetTimestamp = Math.floor(nextMonday.getTime() / 1000);
+    } else {
+        // First day of next month
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+        nextResetTimestamp = Math.floor(nextMonth.getTime() / 1000);
+    }
+
+    const periodLabel = period === 'weekly' ? '📅 Haftalık' : '📆 Aylık';
+    const periodEmoji = period === 'weekly' ? '📅' : '📆';
+
+    return new EmbedBuilder()
+        .setColor(period === 'weekly' ? '#5865F2' : '#9B59B6')
+        .setAuthor({
+            name: `📊 Server Statistics — ${periodLabel}`,
+            iconURL: guild.iconURL({ dynamic: true })
+        })
+        .setTitle(guild.name)
+        .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
+        .addFields(
+            {
+                name: '🏆 Top XP (All Time)',
+                value: xpLeaders || '*No data yet*',
+                inline: false
+            },
+            {
+                name: `💬 ${periodLabel} Top Chatters`,
+                value: msgLeaders || '*No data*',
+                inline: false
+            },
+            {
+                name: `🎤 ${periodLabel} Voice Champions`,
+                value: voiceLeaders || '*No data*',
+                inline: false
+            },
+            {
+                name: '───────────────────────',
+                value: '\u200b',
+                inline: false
+            },
+            {
+                name: '📈 All Time Stats',
+                value: [
+                    `👥 **Users:** \`${totalUsers}\``,
+                    `💬 **Messages:** \`${(totalMessages[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 **Voice:** \`${formatDuration(totalVoice[0]?.total || 0)}\``
+                ].join('\n'),
+                inline: true
+            },
+            {
+                name: `${periodEmoji} Bu ${period === 'weekly' ? 'Hafta' : 'Ay'}`,
+                value: [
+                    `💬 **Messages:** \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
+                    `🎤 **Voice:** \`${formatDuration(periodVoice[0]?.total || 0)}\``,
+                    `⏰ **Resets:** <t:${nextResetTimestamp}:R>`
+                ].join('\n'),
+                inline: true
+            }
+        )
+        .setFooter({ text: 'Last Updated' })
+        .setTimestamp();
+}
+
+/**
+ * Build period switch buttons
+ */
+function buildPeriodButtons(currentPeriod) {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('stats_weekly')
+            .setLabel('Haftalık')
+            .setEmoji('📅')
+            .setStyle(currentPeriod === 'weekly' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+            .setDisabled(currentPeriod === 'weekly'),
+        new ButtonBuilder()
+            .setCustomId('stats_monthly')
+            .setLabel('Aylık')
+            .setEmoji('📆')
+            .setStyle(currentPeriod === 'monthly' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+            .setDisabled(currentPeriod === 'monthly')
+    );
+}
+
+/**
+ * Handle stats button interaction
+ */
+async function handleStatsButton(interaction) {
+    const period = interaction.customId === 'stats_weekly' ? 'weekly' : 'monthly';
+    const embed = await buildStatsEmbed(interaction.guild, period);
+    const row = buildPeriodButtons(period);
+
+    await interaction.update({ embeds: [embed], components: [row] });
+}
+
+/**
  * Build leaderboard string with mentions
  */
 async function buildLeaderboard(guild, users, field) {
     if (!users || users.length === 0) return null;
 
     const lines = [];
-    const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
-    for (let i = 0; i < Math.min(users.length, 10); i++) {
+    for (let i = 0; i < Math.min(users.length, 5); i++) {
         const user = users[i];
-        if (field === 'weeklyMessages' && user.weeklyMessages === 0) continue;
-        if (field === 'weeklyVoiceTime' && user.weeklyVoiceTime === 0) continue;
+
+        if (field === 'weeklyMessages' && (!user.weeklyMessages || user.weeklyMessages === 0)) continue;
+        if (field === 'weeklyVoiceTime' && (!user.weeklyVoiceTime || user.weeklyVoiceTime === 0)) continue;
+        if (field === 'monthlyMessages' && (!user.monthlyMessages || user.monthlyMessages === 0)) continue;
+        if (field === 'monthlyVoiceTime' && (!user.monthlyVoiceTime || user.monthlyVoiceTime === 0)) continue;
 
         let value;
         if (field === 'xp') {
             value = `Level **${user.level}** • \`${user.xp.toLocaleString()} XP\``;
-        } else if (field === 'weeklyMessages') {
-            value = `\`${user.weeklyMessages}\` messages`;
-        } else if (field === 'weeklyVoiceTime') {
-            value = `\`${formatDuration(user.weeklyVoiceTime)}\``;
+        } else if (field === 'weeklyMessages' || field === 'monthlyMessages') {
+            const count = field === 'weeklyMessages' ? user.weeklyMessages : user.monthlyMessages;
+            value = `\`${count}\` messages`;
+        } else if (field === 'weeklyVoiceTime' || field === 'monthlyVoiceTime') {
+            const time = field === 'weeklyVoiceTime' ? user.weeklyVoiceTime : user.monthlyVoiceTime;
+            value = `\`${formatDuration(time)}\``;
         }
 
-        // Use mention instead of username
         lines.push(`${medals[i]} <@${user.oderId}> — ${value}`);
     }
 
@@ -288,6 +347,7 @@ module.exports = {
     assignLevelRole,
     initStatsEmbed,
     updateStatsEmbed,
+    handleStatsButton,
     deleteUserData,
     LEVEL_ROLE_CONFIG
 };

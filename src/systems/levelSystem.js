@@ -73,12 +73,14 @@ async function processActiveVoiceSessions(client) {
 
             const user = await User.findOrCreate(userId, guildId);
 
-            // Check weekly reset
+            // Check weekly and monthly reset
             await checkWeeklyReset(user);
+            await checkMonthlyReset(user);
 
             // Update voice time
             user.totalVoiceTime += duration;
             user.weeklyVoiceTime += duration;
+            user.monthlyVoiceTime = (user.monthlyVoiceTime || 0) + duration;
 
             // Add XP for voice
             const xpGained = duration * XP_PER_VOICE_MINUTE;
@@ -120,12 +122,14 @@ async function handleMessageXP(message, client) {
     try {
         const user = await User.findOrCreate(message.author.id, message.guild.id);
 
-        // Check weekly reset
+        // Check weekly and monthly reset
         await checkWeeklyReset(user);
+        await checkMonthlyReset(user);
 
         // Update message counts
         user.totalMessages += 1;
         user.weeklyMessages += 1;
+        user.monthlyMessages = (user.monthlyMessages || 0) + 1;
 
         // Update channel stats
         const channelCount = user.channelStats.get(message.channel.id) || 0;
@@ -206,12 +210,14 @@ async function processVoiceSession(member, guildId, key, client) {
     try {
         const user = await User.findOrCreate(member.id, guildId);
 
-        // Check weekly reset
+        // Check weekly and monthly reset
         await checkWeeklyReset(user);
+        await checkMonthlyReset(user);
 
         // Update voice time
         user.totalVoiceTime += duration;
         user.weeklyVoiceTime += duration;
+        user.monthlyVoiceTime = (user.monthlyVoiceTime || 0) + duration;
 
         // Add XP for voice
         const xpGained = duration * XP_PER_VOICE_MINUTE;
@@ -283,6 +289,21 @@ async function checkWeeklyReset(user) {
         user.weeklyMessages = 0;
         user.weeklyVoiceTime = 0;
         user.weeklyResetAt = now;
+    }
+}
+
+/**
+ * Check if monthly reset is needed
+ */
+async function checkMonthlyReset(user) {
+    const now = new Date();
+    const lastReset = new Date(user.monthlyResetAt || now);
+
+    // Check if it's a new month
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+        user.monthlyMessages = 0;
+        user.monthlyVoiceTime = 0;
+        user.monthlyResetAt = now;
     }
 }
 

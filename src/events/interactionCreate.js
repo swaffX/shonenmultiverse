@@ -3,6 +3,7 @@ const { Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder
 const { errorEmbed, successEmbed } = require('../utils/embedBuilder');
 const { joinGiveaway, leaveGiveaway, updateGiveawayEmbed } = require('../systems/giveawaySystem');
 const { createTicket, closeTicket } = require('../systems/ticketSystem');
+const { handleStatsButton } = require('../systems/statsEmbedSystem');
 const Guild = require('../models/Guild');
 const logger = require('../utils/logger');
 const config = require('../config/config');
@@ -147,9 +148,9 @@ async function handleButtonInteraction(interaction, client) {
     else if (customId.startsWith('poll_')) {
         await interaction.reply({ content: '✅ Your vote has been recorded!', ephemeral: true });
     }
-    // Suggestion voting
-    else if (customId === 'suggest_upvote' || customId === 'suggest_downvote') {
-        await handleSuggestionVote(interaction, customId === 'suggest_upvote');
+    // Stats period switch buttons
+    else if (customId === 'stats_weekly' || customId === 'stats_monthly') {
+        await handleStatsButton(interaction);
     }
 }
 
