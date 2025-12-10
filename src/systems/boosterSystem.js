@@ -22,6 +22,9 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
         const channel = guild.channels.cache.get(channelId);
         if (!channel) return null;
 
+        // Fetch all members to ensure cache is complete
+        await guild.members.fetch();
+
         // Get all boosters - convert to array properly
         const boostersArray = Array.from(
             guild.members.cache
