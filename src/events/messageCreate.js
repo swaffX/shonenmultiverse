@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const { checkSpam } = require('../systems/antiSpamSystem');
+const { checkMessage } = require('../systems/autoModSystem');
 const { handleMessageXP } = require('../systems/levelSystem');
 const config = require('../config/config');
 
@@ -10,12 +10,10 @@ module.exports = {
         if (message.author.bot) return;
         if (!message.guild) return;
 
+        // Auto-Moderation (Checks bad words and spam)
+        await checkMessage(message, client);
+
         // Level XP system
         await handleMessageXP(message, client).catch(console.error);
-
-        // Anti-spam
-        if (config.antiSpam.enabled) {
-            await checkSpam(message, client);
-        }
     }
 };

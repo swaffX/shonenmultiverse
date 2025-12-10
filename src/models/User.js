@@ -27,6 +27,15 @@ const userSchema = new mongoose.Schema({
     monthlyVoiceTime: { type: Number, default: 0 }, // in minutes
     monthlyResetAt: { type: Date, default: Date.now },
 
+
+
+    // Moderation
+    warnings: [{
+        moderatorId: String,
+        reason: String,
+        timestamp: { type: Date, default: Date.now }
+    }],
+
     // Channel Stats
     channelStats: {
         type: Map,
