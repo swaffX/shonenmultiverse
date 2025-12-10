@@ -1,6 +1,14 @@
+
 module.exports = {
     // Bot owners
     ownerIds: ['315875588906680330', '413081778031427584'],
+
+    roblox: {
+        groupId: process.env.ROBLOX_GROUP_ID || '32567584',
+        clientId: process.env.ROBLOX_CLIENT_ID,
+        clientSecret: process.env.ROBLOX_CLIENT_SECRET,
+        redirectUri: process.env.ROBLOX_REDIRECT_URI || 'http://194.105.5.37:3000/auth/roblox/callback'
+    },
 
     // Server
     server: {

@@ -203,10 +203,91 @@ const port = 3000;
 
 app.get('/', (req, res) => res.send('Shonen Multiverse Bot is running!'));
 
-// OAuth Callback Placeholder
-app.get('/auth/roblox/callback', (req, res) => {
-    // This will be used for specific OAuth verification later
-    res.send('Verification successful! You can close this window.');
+const axios = require('axios');
+const User = require('./models/User');
+
+// OAuth Callback
+app.get('/auth/roblox/callback', async (req, res) => {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+        return res.status(400).send('Missing code or state');
+    }
+
+    try {
+        // Exchange code for token
+        const tokenResponse = await axios.post('https://apis.roblox.com/oauth/v1/token',
+            new URLSearchParams({
+                client_id: config.roblox.clientId,
+                client_secret: config.roblox.clientSecret,
+                grant_type: 'authorization_code',
+                code: code,
+                redirect_uri: config.roblox.redirectUri
+            }), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+        );
+
+        const { access_token } = tokenResponse.data;
+
+        // Get User Info
+        const userInfoResponse = await axios.get('https://apis.roblox.com/oauth/v1/userinfo', {
+            headers: { Authorization: `Bearer ${access_token}` }
+        });
+
+        const robloxUser = userInfoResponse.data;
+        // robloxUser = { sub: '12345', name: 'RobloxUser', nickname: 'RobloxUser', ... }
+
+        const discordUserId = state; // We used state to pass Discord User ID
+        const guildId = config.server.guildId;
+
+        // Update DB
+        let user = await User.findOne({ oderId: discordUserId, guildId: guildId });
+        if (!user) {
+            user = new User({ oderId: discordUserId, guildId: guildId });
+        }
+
+        user.robloxId = robloxUser.sub;
+        user.robloxUsername = robloxUser.preferred_username || robloxUser.name;
+        user.isVerified = true;
+        await user.save();
+
+        // Update Discord Member
+        const guild = client.guilds.cache.get(guildId);
+        if (guild) {
+            try {
+                const member = await guild.members.fetch(discordUserId);
+                if (member) {
+                    // Update Nickname
+                    await member.setNickname(robloxUser.preferred_username || robloxUser.name).catch(e => console.error('Failed to set nickname:', e));
+
+                    // Add Role
+                    const roleId = config.server.roles.verified;
+                    if (roleId) {
+                        await member.roles.add(roleId).catch(e => console.error('Failed to add role:', e));
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to update discord member:', err);
+            }
+        }
+
+        res.send(`
+            <html>
+                <body style="background-color: #2b2d31; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">
+                    <div style="text-align: center;">
+                        <h1>✅ Verification Successful!</h1>
+                        <p>You have been verified as <strong>${robloxUser.preferred_username || robloxUser.name}</strong>.</p>
+                        <p>You can close this window now.</p>
+                    </div>
+                </body>
+            </html>
+        `);
+
+    } catch (error) {
+        console.error('OAuth Callback Error:', error.response?.data || error.message);
+        res.status(500).send('Verification failed. Please try again.');
+    }
 });
 
 app.listen(port, '0.0.0.0', () => {

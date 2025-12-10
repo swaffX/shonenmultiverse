@@ -54,65 +54,54 @@ async function handleButtonInteraction(interaction, client) {
 
     // Handle verification start button (Main Panel)
     if (customId === 'start_verification') {
-        const robloxId = interaction.member.id; // Placeholder, logically we'd need their roblox ID. 
-        // As per user request "do the authorization like in the screenshots", we simulate the OAuth prompt.
+        const clientId = config.roblox.clientId;
+        const redirectUri = config.roblox.redirectUri;
 
-        // Use a persistent code or just random for now.
-        const verifyCode = `SM-${Math.floor(Math.random() * 10000)}-${interaction.user.username.substring(0, 3).toUpperCase()}`;
+        if (!clientId || !redirectUri) {
+            return interaction.reply({
+                content: '❌ Verification system is not fully configured (Missing Client ID or Redirect URI). Please contact an administrator.',
+                ephemeral: true
+            });
+        }
 
-        // This button acts as the "Login" button.
-        const embed = new EmbedBuilder()
-            .setColor('#2B2D31')
-            .setTitle('🔐 Roblox Authorization')
-            .setDescription('Please authorize **Shonen Multiverse** to access your Roblox account.')
-            .addFields(
-                { name: 'Permissions Requested', value: '• Read User Profile\n• Read User ID' }
-            )
-            .setThumbnail('https://images.rbxcdn.com/237d3460492da0740a6b72a919864700.png'); // Roblox Logo
+        // State acts as the security token and carrier of Discord User ID
+        const state = interaction.user.id;
+
+        // Roblox OAuth2 URL
+        const oauthUrl = `https://authorize.roblox.com/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=Code&scope=openid+profile&state=${state}`;
 
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setLabel('Authorize')
+                    .setLabel('Authorize with Roblox')
                     .setStyle(ButtonStyle.Link)
-                    // Since we can't do real OAuth, we link to a "Manual Verify" page or similar.
-                    // Or, we use the "Code" method but wrapped nicely.
-                    // Let's link to the game for now, or use a modal.
-                    // Modal is better for "login".
-                    .setURL('https://www.roblox.com/games/130542097430425/Shonen-Multiverse'),
-                new ButtonBuilder()
-                    .setCustomId('verify_input_manual')
-                    .setLabel('Enter Username manually')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setURL(oauthUrl)
             );
 
-        // ACTUALLY, sticking to the "Code" method but making it look professional:
-        // Ask for Username first via Modal.
-        const modal = new ModalBuilder()
-            .setCustomId('verify_username_modal')
-            .setTitle('Roblox Verification');
-
-        const usernameInput = new TextInputBuilder()
-            .setCustomId('verify_username_input')
-            .setLabel('Roblox Username')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('Enter your Roblox username...')
-            .setRequired(true);
-
-        const modalRow = new ActionRowBuilder().addComponents(usernameInput);
-        modal.addComponents(modalRow);
-
-        await interaction.showModal(modal);
+        await interaction.reply({
+            content: 'Click the button below to authorize your Roblox account securely via Roblox.com:',
+            components: [row],
+            ephemeral: true
+        });
         return;
     }
 
     // Handle Help Button
     if (customId === 'verify_help') {
-        const ticketChannelId = '1439267075456761906'; // Ticket Channel ID
-        await interaction.reply({
-            content: `🆘 Need help? Please open a ticket in our support channel: <#${ticketChannelId}>`,
-            flags: 64
-        });
+        const guildData = await Guild.findOne({ guildId: interaction.guild.id });
+        const ticketChannelId = guildData?.ticketSystem?.panelChannelId;
+
+        if (ticketChannelId) {
+            await interaction.reply({
+                content: `🆘 Need help? Please open a ticket in our support channel: <#${ticketChannelId}>`,
+                flags: 64
+            });
+        } else {
+            await interaction.reply({
+                content: '🆘 Need help? Please ask a moderator for assistance or check the #ticket-creation channel.',
+                flags: 64
+            });
+        }
         return;
     }
 
