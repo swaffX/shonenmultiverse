@@ -1,14 +1,19 @@
 /**
- * Format duration from minutes to human readable
+ * Format duration from minutes to human readable (h:m:s format)
  */
 function formatDuration(minutes) {
-    if (!minutes || minutes === 0) return '0m';
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours < 24) return `${hours}h ${mins}m`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ${hours % 24}h`;
+    if (!minutes || minutes === 0) return '0h 0m';
+
+    const totalSeconds = Math.floor(minutes * 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}h ${mins}m`;
+    } else {
+        return `${mins}m ${secs}s`;
+    }
 }
 
 /**

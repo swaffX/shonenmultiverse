@@ -35,10 +35,10 @@ async function initVoiceTracking(client) {
         }
     }
 
-    // Process voice sessions periodically (every 5 minutes)
+    // Process voice sessions periodically (every 1 minute for real-time updates)
     setInterval(async () => {
         await processActiveVoiceSessions(client);
-    }, 300000); // 5 minutes
+    }, 60000); // 1 minute
 
     console.log(`🎤 Voice tracking initialized. Tracking ${activeVoiceUsers.size} users.`);
 }
