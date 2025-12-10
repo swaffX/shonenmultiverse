@@ -132,8 +132,12 @@ module.exports = {
                     inline: true
                 },
                 {
-                    name: '📅 Weekly',
-                    value: `💬 \`${user.weeklyMessages || 0}\` msgs • 🎤 \`${formatDuration(user.weeklyVoiceTime || 0)}\`\n⏰ Resets <t:${Math.floor(nextMonday.getTime() / 1000)}:R>`,
+                    name: '📅 This Week',
+                    value: [
+                        `💬 Messages: \`${user.weeklyMessages || 0}\``,
+                        `🎤 Voice: \`${formatDuration(user.weeklyVoiceTime || 0)}\``,
+                        `⏰ Resets: <t:${Math.floor(nextMonday.getTime() / 1000)}:R>`
+                    ].join('\n'),
                     inline: false
                 }
             )

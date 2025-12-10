@@ -244,7 +244,7 @@ async function buildStatsEmbed(guild, period) {
             {
                 name: `📅 This ${period === 'weekly' ? 'Week' : 'Month'}`,
                 value: [
-                    `💬 Msgs: \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
+                    `💬 Messages: \`${(periodMsgs[0]?.total || 0).toLocaleString()}\``,
                     `🎤 Voice: \`${formatDuration(periodVoice[0]?.total || 0)}\``,
                     `⏰ Resets: <t:${nextResetTimestamp}:R>`
                 ].join('\n'),
@@ -308,7 +308,7 @@ async function buildLeaderboard(guild, users, field) {
             value = `L**${user.level}** • \`${user.xp.toLocaleString()}\``;
         } else if (field === 'weeklyMessages' || field === 'monthlyMessages') {
             const count = field === 'weeklyMessages' ? user.weeklyMessages : user.monthlyMessages;
-            value = `\`${count}\` msgs`;
+            value = `\`${count}\` messages`;
         } else if (field === 'weeklyVoiceTime' || field === 'monthlyVoiceTime') {
             const time = field === 'weeklyVoiceTime' ? user.weeklyVoiceTime : user.monthlyVoiceTime;
             value = `\`${formatDuration(time)}\``;
