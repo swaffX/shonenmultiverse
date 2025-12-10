@@ -9,20 +9,31 @@ module.exports = {
     async execute(interaction, client) {
         const embed = new EmbedBuilder()
             .setColor(config.colors.primary)
-            .setTitle('📚 Shonen Multiverse Bot')
+            .setTitle('📚 Shonen Multiverse Bot - Commands')
             .setThumbnail(client.user.displayAvatarURL())
             .addFields(
-                { name: '⚙️ Admin', value: '`/reactionrole` `/rules` `/info` `/embed`', inline: false },
-                { name: '🔨 Moderation', value: '`/ban` `/kick` `/mute` `/unmute` `/warn` `/clear`', inline: false },
-                { name: '🎉 Fun', value: '`/giveaway` `/poll`', inline: false },
-                { name: '🔧 Utility', value: '`/serverinfo` `/help`', inline: false }
+                {
+                    name: '🛡️ Moderation',
+                    value: '`/warn` `/warnings` `/clearwarnings` `/slowmode` `/ban` `/kick` `/mute` `/unmute` `/clear`',
+                    inline: false
+                },
+                {
+                    name: '⚙️ Admin & Setup',
+                    value: '`/event` `/ticket` `/setup-stats` `/setup-welcome` `/setup-levels` `/setup-booster` `/reactionrole` `/logs` `/embed`',
+                    inline: false
+                },
+                {
+                    name: 'ℹ️ Information',
+                    value: '`/status` (Game) `/serverinfo` `/info` `/roles` `/rules` `/booster`',
+                    inline: false
+                },
+                {
+                    name: '🎉 Levels & Fun',
+                    value: '`/level` `/poll` `/giveaway`',
+                    inline: false
+                }
             )
-            .addFields({
-                name: '🔗 Links',
-                value: `[Game](${config.game.robloxLink}) • [Group](${config.game.groupLink})`,
-                inline: false
-            })
-            .setFooter({ text: 'Shonen Multiverse' })
+            .setFooter({ text: 'Use /command to see more details' })
             .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
