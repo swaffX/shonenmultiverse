@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema({
     weeklyVoiceTime: { type: Number, default: 0 }, // in minutes
     weeklyResetAt: { type: Date, default: Date.now },
 
+    // Monthly Stats (reset 1st of each month)
+    monthlyMessages: { type: Number, default: 0 },
+    monthlyVoiceTime: { type: Number, default: 0 }, // in minutes
+    monthlyResetAt: { type: Date, default: Date.now },
+
     // Channel Stats
     channelStats: {
         type: Map,
@@ -72,6 +77,20 @@ userSchema.statics.getWeeklyVoiceLeaders = async function (guildId, limit = 10) 
         .limit(limit);
 };
 
+// Static method to get monthly message leaderboard
+userSchema.statics.getMonthlyMessageLeaders = async function (guildId, limit = 10) {
+    return this.find({ guildId })
+        .sort({ monthlyMessages: -1 })
+        .limit(limit);
+};
+
+// Static method to get monthly voice leaderboard
+userSchema.statics.getMonthlyVoiceLeaders = async function (guildId, limit = 10) {
+    return this.find({ guildId })
+        .sort({ monthlyVoiceTime: -1 })
+        .limit(limit);
+};
+
 // Static method to reset weekly stats
 userSchema.statics.resetWeeklyStats = async function (guildId) {
     return this.updateMany(
@@ -80,6 +99,18 @@ userSchema.statics.resetWeeklyStats = async function (guildId) {
             weeklyMessages: 0,
             weeklyVoiceTime: 0,
             weeklyResetAt: new Date()
+        }
+    );
+};
+
+// Static method to reset monthly stats
+userSchema.statics.resetMonthlyStats = async function (guildId) {
+    return this.updateMany(
+        { guildId },
+        {
+            monthlyMessages: 0,
+            monthlyVoiceTime: 0,
+            monthlyResetAt: new Date()
         }
     );
 };
