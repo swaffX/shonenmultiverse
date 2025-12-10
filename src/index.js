@@ -287,6 +287,11 @@ app.get('/auth/roblox/callback', async (req, res) => {
                         <p>You have been verified as <strong>${robloxUser.preferred_username || robloxUser.name}</strong>.</p>
                         <br>
                         <a href="discord://" style="background-color: #5865F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Return to Discord</a>
+                        <script>
+                            setTimeout(function() {
+                                window.location.href = "discord://";
+                            }, 1000);
+                        </script>
                     </div>
                 </body>
             </html>
@@ -301,20 +306,27 @@ app.get('/auth/roblox/callback', async (req, res) => {
 app.listen(port, '0.0.0.0', async () => {
     console.log(`🌍 Web server running on port ${port}`);
 
-    // Start Cloudflare Tunnel for HTTPS (No Warning Page)
+    // Start Ngrok for HTTPS
     try {
-        const { startTunnel } = require('untun');
-        const tunnel = await startTunnel({ port: port });
-        const tunnelUrl = await tunnel.getURL();
-        console.log(`🌍 Public HTTPS URL: ${tunnelUrl}`);
+        const ngrok = require('ngrok');
+        const url = await ngrok.connect({
+            addr: port,
+            authtoken: process.env.NGROK_AUTH_TOKEN || '36dTZ3Gli9MDd1f2snEgYR02aXf_2pwLXSPkFxw5h8CZr7rfe' // User provided token
+        });
+        console.log(`🌍 Public HTTPS URL: ${url}`);
 
-        // Update config redirect URI dynamically if not set
-        if (!config.roblox.redirectUri || config.roblox.redirectUri.includes('localhost') || config.roblox.redirectUri.includes('194.105') || config.roblox.redirectUri.includes('loca.lt')) {
-            console.log(`⚠️ Updating Redirect URI to Tunnel URL: ${tunnelUrl}/auth/roblox/callback`);
-            config.roblox.redirectUri = `${tunnelUrl}/auth/roblox/callback`;
-        }
+        // Update config redirect URI dynamically
+        console.log(`⚠️ Updating Redirect URI to Ngrok URL: ${url}/auth/roblox/callback`);
+        config.roblox.redirectUri = `${url}/auth/roblox/callback`;
+
+        // Log for user visibility in console
+        console.log('\n!!! IMPORTANT !!!');
+        console.log(`Please copy this URL and paste it into Roblox Dashboard > OAuth 2.0 > Redirect URIs:`);
+        console.log(`${url}/auth/roblox/callback`);
+        console.log('!!! IMPORTANT !!!\n');
+
     } catch (err) {
-        console.error('❌ Failed to start Cloudflare Tunnel:', err);
+        console.error('❌ Failed to start Ngrok:', err);
     }
 });
 
