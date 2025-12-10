@@ -8,6 +8,7 @@ const {
     showRoomSettingsModal,
     handleRoomSettingsModal,
     handleControlPanelButton,
+    handlePrivacySelection,
     handleLimitModal,
     handleWhitelistModal
 } = require('../systems/customVoiceSystem');
@@ -163,6 +164,11 @@ async function handleButtonInteraction(interaction, client) {
     else if (customId === 'customvoice_create') {
         await showRoomSettingsModal(interaction);
     }
+    // Privacy selection buttons
+    else if (customId === 'customvoice_privacy_public' || customId === 'customvoice_privacy_private') {
+        await handlePrivacySelection(interaction);
+    }
+    // Control panel buttons
     else if (customId.startsWith('customvoice_')) {
         await handleControlPanelButton(interaction);
     }

@@ -111,35 +111,79 @@ async function showRoomSettingsModal(interaction) {
         .setMaxLength(2)
         .setRequired(false);
 
-    const privateInput = new TextInputBuilder()
-        .setCustomId('is_private')
-        .setLabel('Room Privacy (🔒 = locked, 🔓 = open)')
-        .setPlaceholder('🔓')
-        .setStyle(TextInputStyle.Short)
-        .setMaxLength(2)
-        .setRequired(false);
-
     modal.addComponents(
         new ActionRowBuilder().addComponents(nameInput),
-        new ActionRowBuilder().addComponents(limitInput),
-        new ActionRowBuilder().addComponents(privateInput)
+        new ActionRowBuilder().addComponents(limitInput)
     );
 
     await interaction.showModal(modal);
 }
 
+// Store pending room creations (userId -> { roomName, userLimit })
+const pendingRooms = new Map();
+
 /**
- * Handle the room settings modal submission
+ * Handle the room settings modal submission - show privacy buttons
  */
 async function handleRoomSettingsModal(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-
     const roomName = interaction.fields.getTextInputValue('room_name') || `${interaction.user.username}'s Room`;
     const userLimitStr = interaction.fields.getTextInputValue('user_limit') || '0';
-    const isPrivateStr = interaction.fields.getTextInputValue('is_private') || 'no';
-
     const userLimit = Math.min(99, Math.max(0, parseInt(userLimitStr) || 0));
-    const isPrivate = isPrivateStr.includes('🔒') || isPrivateStr.toLowerCase() === 'yes';
+
+    // Store pending room data
+    pendingRooms.set(interaction.user.id, { roomName, userLimit });
+
+    // Show privacy selection buttons
+    const embed = new EmbedBuilder()
+        .setColor('#5865F2')
+        .setTitle('🔐 Select Room Privacy')
+        .setDescription([
+            `**Room Name:** ${roomName}`,
+            `**User Limit:** ${userLimit || 'Unlimited'}`,
+            '',
+            'Choose your room privacy:'
+        ].join('\n'));
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('customvoice_privacy_public')
+            .setLabel('Public Room')
+            .setEmoji('🔓')
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('customvoice_privacy_private')
+            .setLabel('Private Room')
+            .setEmoji('🔒')
+            .setStyle(ButtonStyle.Danger)
+    );
+
+    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+}
+
+/**
+ * Handle privacy button selection and create room
+ */
+async function handlePrivacySelection(interaction) {
+    const isPrivate = interaction.customId === 'customvoice_privacy_private';
+    const pendingData = pendingRooms.get(interaction.user.id);
+
+    if (!pendingData) {
+        return interaction.update({
+            content: '❌ Session expired. Please start over.',
+            embeds: [],
+            components: []
+        });
+    }
+
+    pendingRooms.delete(interaction.user.id);
+
+    await interaction.update({
+        content: '⏳ Creating your room...',
+        embeds: [],
+        components: []
+    });
+
+    const { roomName, userLimit } = pendingData;
 
     try {
         const category = interaction.guild.channels.cache.get(CATEGORY_ID);
@@ -147,9 +191,11 @@ async function handleRoomSettingsModal(interaction) {
             return interaction.editReply({ content: '❌ Category not found!' });
         }
 
-        // Create the voice channel
+        // Create the voice channel with lock emoji if private
+        const channelName = isPrivate ? `🔒 ${roomName}` : `🎤 ${roomName}`;
+
         const voiceChannel = await interaction.guild.channels.create({
-            name: `🎤 ${roomName}`,
+            name: channelName,
             type: ChannelType.GuildVoice,
             parent: CATEGORY_ID,
             userLimit: userLimit,
@@ -505,6 +551,7 @@ module.exports = {
     showRoomSettingsModal,
     handleRoomSettingsModal,
     handleControlPanelButton,
+    handlePrivacySelection,
     handleLimitModal,
     handleWhitelistModal,
     handleVoiceStateUpdate,
