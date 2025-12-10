@@ -12,6 +12,7 @@ const { initGiveaways } = require('./systems/giveawaySystem');
 const { initServerStats, loadStatsChannels } = require('./systems/serverStatsSystem');
 const { initBoosterSystem } = require('./systems/boosterSystem');
 const { initStatsEmbed } = require('./systems/statsEmbedSystem');
+const { initVoiceTracking } = require('./systems/levelSystem');
 const config = require('./config/config');
 const Guild = require('./models/Guild');
 
@@ -98,6 +99,9 @@ client.once('ready', () => {
 
     // Initialize stats embed system
     initStatsEmbed(client);
+
+    // Initialize voice tracking
+    initVoiceTracking(client);
 
     // Load saved stats channels from database
     (async () => {

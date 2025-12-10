@@ -1,26 +1,114 @@
 const { EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
 const { assignLevelRole } = require('./statsEmbedSystem');
+
+// XP Settings
 const XP_PER_MESSAGE = 15;
 const XP_PER_VOICE_MINUTE = 5;
 const XP_COOLDOWN = 60000; // 1 minute between XP gains
 const LEVEL_CHANNEL_ID = '1448093485205815437';
 
-// Level Roles (level -> roleId mapping)
-const LEVEL_ROLES = {
-    5: null,   // Will be created
-    10: null,
-    15: null,
-    20: null,
-    25: null,
-    30: null,
-    50: null,
-    75: null,
-    100: null
-};
-
 // Track active voice users
 const activeVoiceUsers = new Map();
+
+/**
+ * Initialize voice tracking - load existing users in voice channels
+ */
+async function initVoiceTracking(client) {
+    console.log('🎤 Initializing voice tracking...');
+
+    // Load users already in voice channels
+    for (const [, guild] of client.guilds.cache) {
+        for (const [, channel] of guild.channels.cache) {
+            if (channel.isVoiceBased() && channel.members) {
+                for (const [, member] of channel.members) {
+                    if (!member.user.bot) {
+                        const key = `${member.id}-${guild.id}`;
+                        activeVoiceUsers.set(key, {
+                            joinTime: Date.now(),
+                            channelId: channel.id
+                        });
+                        console.log(`🎤 Tracking ${member.user.tag} in ${channel.name}`);
+                    }
+                }
+            }
+        }
+    }
+
+    // Process voice sessions periodically (every 5 minutes)
+    setInterval(async () => {
+        await processActiveVoiceSessions(client);
+    }, 300000); // 5 minutes
+
+    console.log(`🎤 Voice tracking initialized. Tracking ${activeVoiceUsers.size} users.`);
+}
+
+/**
+ * Process all active voice sessions periodically
+ */
+async function processActiveVoiceSessions(client) {
+    const now = Date.now();
+
+    for (const [key, session] of activeVoiceUsers.entries()) {
+        const [userId, guildId] = key.split('-');
+        const duration = Math.floor((now - session.joinTime) / 60000); // minutes
+
+        if (duration < 1) continue;
+
+        try {
+            const guild = client.guilds.cache.get(guildId);
+            if (!guild) continue;
+
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (!member) {
+                activeVoiceUsers.delete(key);
+                continue;
+            }
+
+            // Check if still in voice
+            if (!member.voice.channel) {
+                activeVoiceUsers.delete(key);
+                continue;
+            }
+
+            const user = await User.findOrCreate(userId, guildId);
+
+            // Check weekly reset
+            await checkWeeklyReset(user);
+
+            // Update voice time
+            user.totalVoiceTime += duration;
+            user.weeklyVoiceTime += duration;
+
+            // Add XP for voice
+            const xpGained = duration * XP_PER_VOICE_MINUTE;
+            const oldLevel = user.level;
+            user.xp += xpGained;
+
+            // Calculate new level
+            const newLevel = getLevelFromXP(user.xp);
+
+            // Check for level up
+            if (newLevel > oldLevel) {
+                user.level = newLevel;
+                await sendLevelUpMessage(guild, member.user, newLevel, client);
+                await checkLevelRoles(member, newLevel);
+            }
+
+            await user.save();
+
+            // Reset join time for next interval
+            activeVoiceUsers.set(key, {
+                joinTime: now,
+                channelId: session.channelId
+            });
+
+            console.log(`🎤 ${member.user.tag} gained ${xpGained} XP for ${duration}m in voice (periodic)`);
+        } catch (error) {
+            console.error('Periodic voice XP error:', error);
+        }
+    }
+}
 
 /**
  * Calculate required XP for a level
@@ -106,6 +194,7 @@ async function handleVoiceXP(oldState, newState, client) {
             joinTime: Date.now(),
             channelId: newState.channel.id
         });
+        console.log(`🎤 ${member.user.tag} joined voice channel`);
     }
     // User left voice channel
     else if (oldState.channel && !newState.channel) {
@@ -129,10 +218,9 @@ async function processVoiceSession(member, guildId, key, client) {
     if (!session) return;
 
     const duration = Math.floor((Date.now() - session.joinTime) / 60000); // minutes
-    if (duration < 1) {
-        activeVoiceUsers.delete(key);
-        return;
-    }
+    activeVoiceUsers.delete(key);
+
+    if (duration < 1) return;
 
     try {
         const user = await User.findOrCreate(member.id, guildId);
@@ -164,8 +252,6 @@ async function processVoiceSession(member, guildId, key, client) {
     } catch (error) {
         console.error('Voice XP error:', error);
     }
-
-    activeVoiceUsers.delete(key);
 }
 
 /**
@@ -204,7 +290,6 @@ async function checkLevelRoles(member, level) {
  */
 async function checkWeeklyReset(user) {
     const now = new Date();
-    const resetDay = 1; // Monday
     const lastReset = new Date(user.weeklyResetAt);
 
     // Check if it's a new week
@@ -270,6 +355,7 @@ function sumXPToLevel(level) {
  * Format duration
  */
 function formatDuration(minutes) {
+    if (!minutes || minutes === 0) return '0m';
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -279,12 +365,12 @@ function formatDuration(minutes) {
 }
 
 module.exports = {
+    initVoiceTracking,
     handleMessageXP,
     handleVoiceXP,
     getUserRank,
     getRequiredXP,
     formatDuration,
-    LEVEL_ROLES,
     XP_PER_MESSAGE,
     XP_PER_VOICE_MINUTE
 };
