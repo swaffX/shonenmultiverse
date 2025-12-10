@@ -62,7 +62,7 @@ async function sendSetupEmbed(channel) {
             '',
             '> Click the button below to create your room!'
         ].join('\n'))
-        .setImage('https://i.imgur.com/8GQ6NWR.png')
+        .setImage('https://cdn.discordapp.com/attachments/531892263652032522/1448120074656551033/Gemini_Generated_Image_k0e7cik0e7cik0e7.png')
         .setFooter({ text: 'Rooms auto-delete after 30 minutes of inactivity' });
 
     const row = new ActionRowBuilder().addComponents(
@@ -113,10 +113,10 @@ async function showRoomSettingsModal(interaction) {
 
     const privateInput = new TextInputBuilder()
         .setCustomId('is_private')
-        .setLabel('Private Room? (yes/no)')
-        .setPlaceholder('no')
+        .setLabel('Room Privacy (🔒 = locked, 🔓 = open)')
+        .setPlaceholder('🔓')
         .setStyle(TextInputStyle.Short)
-        .setMaxLength(3)
+        .setMaxLength(2)
         .setRequired(false);
 
     modal.addComponents(
@@ -139,7 +139,7 @@ async function handleRoomSettingsModal(interaction) {
     const isPrivateStr = interaction.fields.getTextInputValue('is_private') || 'no';
 
     const userLimit = Math.min(99, Math.max(0, parseInt(userLimitStr) || 0));
-    const isPrivate = isPrivateStr.toLowerCase() === 'yes';
+    const isPrivate = isPrivateStr.includes('🔒') || isPrivateStr.toLowerCase() === 'yes';
 
     try {
         const category = interaction.guild.channels.cache.get(CATEGORY_ID);
