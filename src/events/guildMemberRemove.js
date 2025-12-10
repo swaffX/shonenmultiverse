@@ -31,7 +31,8 @@ async function sendGoodbyeMessage(member, client) {
             return;
         }
 
-        const channel = member.guild.channels.cache.get(guildData.goodbye.channelId);
+        const channelId = '1448030623108305081'; // Updated Leave Channel
+        const channel = member.guild.channels.cache.get(channelId);
         if (!channel) return;
 
         const memberCount = member.guild.memberCount;

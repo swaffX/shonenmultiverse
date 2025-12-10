@@ -196,6 +196,23 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
+// Express Server for potential OAuth/Web Dashboard
+const express = require('express');
+const app = express();
+const port = 3000;
+
+app.get('/', (req, res) => res.send('Shonen Multiverse Bot is running!'));
+
+// OAuth Callback Placeholder
+app.get('/auth/roblox/callback', (req, res) => {
+    // This will be used for specific OAuth verification later
+    res.send('Verification successful! You can close this window.');
+});
+
+app.listen(port, '0.0.0.0', () => {
+    console.log(`🌍 Web server running on port ${port}`);
+});
+
 // Start the bot with error handling
 init().catch(error => {
     console.error('❌ Failed to start bot:', error);

@@ -37,15 +37,16 @@ async function sendWelcomeMessage(member, client) {
             return;
         }
 
-        const channel = member.guild.channels.cache.get(guildData.welcome.channelId);
+        const channelId = '1447218395564085341'; // Updated Welcome Channel
+        const channel = member.guild.channels.cache.get(channelId);
         if (!channel) return;
 
         const memberCount = member.guild.memberCount;
 
-        // Modern styled message with bold emphasis
+        // Modern styled message in English
         const defaultMessage = `Hey <@${member.id}>! 🎉\n\nWelcome to **${member.guild.name}**!\nYou are our **${memberCount}${getOrdinalSuffix(memberCount)}** member!`;
 
-        const message = (guildData.welcome.message || defaultMessage)
+        const message = (guildData?.welcome?.message || defaultMessage)
             .replace('{user}', `<@${member.id}>`)
             .replace('{server}', `**${member.guild.name}**`)
             .replace('{count}', `**${memberCount}**`);
@@ -57,7 +58,7 @@ async function sendWelcomeMessage(member, client) {
                 name: '✨ New Member Joined!',
                 iconURL: member.guild.iconURL({ dynamic: true })
             })
-            .setTitle(`Welcome, ${member.user.username}!`)
+            .setTitle(`Welcome to the Universe, ${member.user.username}!`)
             .setDescription(message)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
             .addFields(
