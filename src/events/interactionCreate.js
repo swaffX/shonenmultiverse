@@ -52,9 +52,72 @@ module.exports = {
 async function handleButtonInteraction(interaction, client) {
     const customId = interaction.customId;
 
-    // Handle verification check
+    // Handle verification start button (Main Panel)
+    if (customId === 'start_verification') {
+        const robloxId = interaction.member.id; // Placeholder, logically we'd need their roblox ID. 
+        // As per user request "do the authorization like in the screenshots", we simulate the OAuth prompt.
+
+        // Use a persistent code or just random for now.
+        const verifyCode = `SM-${Math.floor(Math.random() * 10000)}-${interaction.user.username.substring(0, 3).toUpperCase()}`;
+
+        // This button acts as the "Login" button.
+        const embed = new EmbedBuilder()
+            .setColor('#2B2D31')
+            .setTitle('🔐 Roblox Authorization')
+            .setDescription('Please authorize **Shonen Multiverse** to access your Roblox account.')
+            .addFields(
+                { name: 'Permissions Requested', value: '• Read User Profile\n• Read User ID' }
+            )
+            .setThumbnail('https://images.rbxcdn.com/237d3460492da0740a6b72a919864700.png'); // Roblox Logo
+
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('Authorize')
+                    .setStyle(ButtonStyle.Link)
+                    // Since we can't do real OAuth, we link to a "Manual Verify" page or similar.
+                    // Or, we use the "Code" method but wrapped nicely.
+                    // Let's link to the game for now, or use a modal.
+                    // Modal is better for "login".
+                    .setURL('https://www.roblox.com/games/130542097430425/Shonen-Multiverse'),
+                new ButtonBuilder()
+                    .setCustomId('verify_input_manual')
+                    .setLabel('Enter Username manually')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+        // ACTUALLY, sticking to the "Code" method but making it look professional:
+        // Ask for Username first via Modal.
+        const modal = new ModalBuilder()
+            .setCustomId('verify_username_modal')
+            .setTitle('Roblox Verification');
+
+        const usernameInput = new TextInputBuilder()
+            .setCustomId('verify_username_input')
+            .setLabel('Roblox Username')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('Enter your Roblox username...')
+            .setRequired(true);
+
+        const modalRow = new ActionRowBuilder().addComponents(usernameInput);
+        modal.addComponents(modalRow);
+
+        await interaction.showModal(modal);
+        return;
+    }
+
+    // Handle Help Button
+    if (customId === 'verify_help') {
+        await interaction.reply({
+            content: 'Please open a ticket in <#123456789> (Ticket Channel) for assistance.', // Placeholder channel
+            flags: 64
+        });
+        return;
+    }
+
+    // Handle verification check (Old button, keep for backward compatibility or remove)
     if (customId.startsWith('verify_check_')) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         const parts = customId.split('_');
         const robloxId = parts[2];
         const verifyCode = parts.slice(3).join('_');
@@ -356,6 +419,62 @@ async function handleModalSubmit(interaction, client) {
     // Custom voice whitelist modal
     else if (customId === 'customvoice_whitelist_modal') {
         await handleWhitelistModal(interaction);
+    }
+    // Verify Username Modal
+    else if (customId === 'verify_username_modal') {
+        await interaction.deferReply({ flags: 64 });
+        const robloxUsername = interaction.fields.getTextInputValue('verify_username_input');
+
+        try {
+            // 1. Get Roblox ID
+            const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usernames: [robloxUsername], excludeBannedUsers: true })
+            });
+
+            if (!idRes.ok) throw new Error('Roblox API Error');
+            const idData = await idRes.json();
+
+            if (!idData.data || idData.data.length === 0) {
+                return interaction.editReply({ content: `❌ User **${robloxUsername}** not found on Roblox.` });
+            }
+
+            const robloxUser = idData.data[0];
+            const robloxId = robloxUser.id;
+            const discordUser = interaction.user;
+
+            // 2. Generate Code
+            const verifyCode = `SM-${Math.floor(Math.random() * 10000)}-${discordUser.username.substring(0, 3).toUpperCase()}`;
+
+            const embed = new EmbedBuilder()
+                .setColor('#2B2D31')
+                .setTitle('🔐 Verification Steps')
+                .setDescription(`Hello **${robloxUser.name}**! To prove you own this account:`)
+                .addFields(
+                    { name: 'Step 1', value: `Go to your [Roblox Profile](https://www.roblox.com/users/${robloxId}/profile)` },
+                    { name: 'Step 2', value: `Put this code in your **About/Blurb** box:\n\`\`\`${verifyCode}\`\`\`` },
+                    { name: 'Step 3', value: 'Click **Done** when saved.' }
+                )
+                .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`verify_check_${robloxId}_${verifyCode}`)
+                        .setLabel('Done')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setLabel('Profile Link')
+                        .setStyle(ButtonStyle.Link)
+                        .setURL(`https://www.roblox.com/users/${robloxId}/profile`)
+                );
+
+            await interaction.editReply({ embeds: [embed], components: [row] });
+        } catch (error) {
+            console.error(error);
+            await interaction.editReply('❌ Failed to fetch Roblox user.');
+        }
     }
 }
 
