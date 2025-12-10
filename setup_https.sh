@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define Domain
-DOMAIN="194.105.5.37.sslip.io"
+DOMAIN="194.105.5.37.nip.io"
 EMAIL="admin@shonenmultiverse.com"
 
 echo "🚀 Starting Permanent HTTPS Setup for $DOMAIN..."

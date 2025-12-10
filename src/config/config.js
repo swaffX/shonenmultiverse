@@ -7,7 +7,7 @@ module.exports = {
         groupId: process.env.ROBLOX_GROUP_ID || '32567584',
         clientId: process.env.ROBLOX_CLIENT_ID,
         clientSecret: process.env.ROBLOX_CLIENT_SECRET,
-        redirectUri: process.env.ROBLOX_REDIRECT_URI || 'https://194.105.5.37.sslip.io/auth/roblox/callback'
+        redirectUri: process.env.ROBLOX_REDIRECT_URI || 'https://194.105.5.37.nip.io/auth/roblox/callback'
     },
 
     // Server
