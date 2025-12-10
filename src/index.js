@@ -309,6 +309,10 @@ app.listen(port, '0.0.0.0', async () => {
     // Start Ngrok for HTTPS
     try {
         const ngrok = require('ngrok');
+
+        // Force kill any existing sessions to prevent "tunnel already exists" error
+        await ngrok.kill().catch(() => { });
+
         const url = await ngrok.connect({
             addr: port,
             authtoken: process.env.NGROK_AUTH_TOKEN || '36dTZ3Gli9MDd1f2snEgYR02aXf_2pwLXSPkFxw5h8CZr7rfe' // User provided token
