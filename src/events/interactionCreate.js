@@ -79,7 +79,7 @@ async function handleButtonInteraction(interaction, client) {
             );
 
         await interaction.reply({
-            content: 'Click the button below to authorize your Roblox account securely via Roblox.com:',
+            content: ' ',
             components: [row],
             ephemeral: true
         });

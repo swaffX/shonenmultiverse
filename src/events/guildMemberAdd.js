@@ -18,6 +18,10 @@ module.exports = {
             return;
         }
 
+        // Add Unverified Role
+        const unverifiedRoleId = '1439010347716579519';
+        await member.roles.add(unverifiedRoleId).catch(err => console.error('Failed to assign unverified role:', err));
+
         // Check for raid
         if (config.antiRaid.enabled) {
             await checkRaid(member, client);

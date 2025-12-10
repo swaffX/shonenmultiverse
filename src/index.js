@@ -261,10 +261,17 @@ app.get('/auth/roblox/callback', async (req, res) => {
                     // Update Nickname
                     await member.setNickname(robloxUser.preferred_username || robloxUser.name).catch(e => console.error('Failed to set nickname:', e));
 
-                    // Add Role
-                    const roleId = config.server.roles.verified;
-                    if (roleId) {
-                        await member.roles.add(roleId).catch(e => console.error('Failed to add role:', e));
+                    // Add Verified Role
+                    const verifiedRoleId = '1439009819519488112'; // Verified Role ID
+                    const unverifiedRoleId = '1439010347716579519'; // Unverified Role ID
+
+                    if (verifiedRoleId) {
+                        await member.roles.add(verifiedRoleId).catch(e => console.error('Failed to add verified role:', e));
+                    }
+
+                    // Remove Unverified Role
+                    if (unverifiedRoleId) {
+                        await member.roles.remove(unverifiedRoleId).catch(e => console.error('Failed to remove unverified role:', e));
                     }
                 }
             } catch (err) {
@@ -293,23 +300,20 @@ app.get('/auth/roblox/callback', async (req, res) => {
 app.listen(port, '0.0.0.0', async () => {
     console.log(`🌍 Web server running on port ${port}`);
 
-    // Start LocalTunnel for HTTPS
+    // Start Cloudflare Tunnel for HTTPS (No Warning Page)
     try {
-        const localtunnel = require('localtunnel');
-        const tunnel = await localtunnel({ port: port, subdomain: 'shonen-multiverse-auth' });
-        console.log(`🌍 Public HTTPS URL: ${tunnel.url}`);
+        const { startTunnel } = require('untun');
+        const tunnel = await startTunnel({ port: port });
+        const tunnelUrl = await tunnel.getURL();
+        console.log(`🌍 Public HTTPS URL: ${tunnelUrl}`);
 
         // Update config redirect URI dynamically if not set
-        if (!config.roblox.redirectUri || config.roblox.redirectUri.includes('localhost') || config.roblox.redirectUri.includes('194.105')) {
-            console.log(`⚠️ Updating Redirect URI to Tunnel URL: ${tunnel.url}/auth/roblox/callback`);
-            config.roblox.redirectUri = `${tunnel.url}/auth/roblox/callback`;
+        if (!config.roblox.redirectUri || config.roblox.redirectUri.includes('localhost') || config.roblox.redirectUri.includes('194.105') || config.roblox.redirectUri.includes('loca.lt')) {
+            console.log(`⚠️ Updating Redirect URI to Tunnel URL: ${tunnelUrl}/auth/roblox/callback`);
+            config.roblox.redirectUri = `${tunnelUrl}/auth/roblox/callback`;
         }
-
-        tunnel.on('close', () => {
-            console.log('⚠️ LocalTunnel closed');
-        });
     } catch (err) {
-        console.error('❌ Failed to start LocalTunnel:', err);
+        console.error('❌ Failed to start Cloudflare Tunnel:', err);
     }
 });
 
