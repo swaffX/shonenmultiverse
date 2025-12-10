@@ -43,7 +43,32 @@ securityLogSchema.statics.countRecentActions = async function (guildId, executor
 };
 
 // Static method to log action
-securityLogSchema.statics.logAction = async function (data) {
+// Static method to log action
+securityLogSchema.statics.logAction = async function (guildId, executorId, actionType, detailsOrTarget) {
+    // Handle both old (object) and new (args) usage just in case, or stick to one.
+    // protectionSystem passes: guildId, oderId (executor), actionType, targetId (which acts as details/target)
+
+    let data = {};
+    if (typeof guildId === 'object') {
+        data = guildId;
+    } else {
+        data = {
+            guildId,
+            executorId,
+            actionType,
+            details: typeof detailsOrTarget === 'string' ? detailsOrTarget : JSON.stringify(detailsOrTarget)
+            // targetId is optional in schema, maybe map it if needed? 
+            // The schema has targetId and details.
+            // protectionSystem passes 4th arg as 'targetId' variable but usage implies it might be details sometimes?
+            // Let's look at protectionSystem: 
+            // recordAction(guildId, oderId, actionType, targetId)
+        };
+        // Explicitly map targetId if it looks like an ID, otherwise treat as details?
+        // Actually looking at Schema, it has 'targetId' and 'details'.
+        // Let's just update the signature to match what we need.
+        data.targetId = (typeof detailsOrTarget === 'string' && detailsOrTarget.match(/^\d+$/)) ? detailsOrTarget : null;
+        if (!data.targetId) data.details = detailsOrTarget;
+    }
     return this.create(data);
 };
 

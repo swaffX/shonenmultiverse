@@ -398,6 +398,44 @@ async function logVoiceUpdate(oldState, newState) {
     await channel.send({ embeds: [embed] });
 }
 
+/**
+ * Log generic action
+ */
+async function logAction(guild, actionType, data) {
+    let channelType = 'server';
+    let color = '#5865F2';
+    let title = 'Action Logged';
+
+    // Map action types to channels and colors
+    if (actionType.startsWith('CUSTOM_VOICE')) {
+        channelType = 'voice';
+        color = '#00D166';
+        title = '🎤 Custom Voice Action';
+    }
+
+    const channel = await getLogChannel(guild, channelType);
+    if (!channel) return;
+
+    const embed = new EmbedBuilder()
+        .setColor(color)
+        .setAuthor({
+            name: title,
+            iconURL: data.executor?.displayAvatarURL({ dynamic: true })
+        })
+        .addFields(
+            { name: '👤 Executor', value: `<@${data.executor?.id}>`, inline: true },
+            { name: '📝 Action', value: actionType, inline: true },
+            { name: '📄 Details', value: data.details || 'No details', inline: false }
+        )
+        .setTimestamp();
+
+    if (data.target) {
+        embed.addFields({ name: '🎯 Target', value: `<@${data.target.id}>`, inline: true });
+    }
+
+    await channel.send({ embeds: [embed] });
+}
+
 module.exports = {
     setupLoggingSystem,
     getLogChannel,
@@ -410,6 +448,7 @@ module.exports = {
     logChannelCreate,
     logChannelDelete,
     logVoiceUpdate,
+    logAction,
     LOG_CHANNELS,
     ALLOWED_ROLES
 };
