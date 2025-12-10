@@ -280,20 +280,117 @@ app.get('/auth/roblox/callback', async (req, res) => {
         }
 
         res.send(`
+            <!DOCTYPE html>
             <html>
-                <body style="background-color: #2b2d31; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">
-                    <div style="text-align: center;">
-                        <h1>✅ Verification Successful!</h1>
-                        <p>You have been verified as <strong>${robloxUser.preferred_username || robloxUser.name}</strong>.</p>
-                        <br>
-                        <a href="discord://" style="background-color: #5865F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Return to Discord</a>
-                        <script>
-                            setTimeout(function() {
-                                window.location.href = "discord://";
-                            }, 1000);
-                        </script>
+            <head>
+                <title>Verification Successful</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {
+                        background-color: #1a1b1e;
+                        color: #ffffff;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        overflow: hidden;
+                    }
+                    .container {
+                        text-align: center;
+                        background: #2b2d31;
+                        padding: 40px;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                        width: 90%;
+                        max-width: 400px;
+                        opacity: 0;
+                        transform: translateY(20px);
+                        animation: fadeInUp 0.8s ease forwards;
+                    }
+                    h1 {
+                        color: #5865F2;
+                        margin-bottom: 10px;
+                        font-size: 24px;
+                    }
+                    p {
+                        color: #b5bac1;
+                        font-size: 16px;
+                        margin-bottom: 30px;
+                    }
+                    strong {
+                        color: #ffffff;
+                    }
+                    .btn {
+                        display: inline-block;
+                        background-color: #5865F2;
+                        color: white;
+                        padding: 12px 30px;
+                        text-decoration: none;
+                        border-radius: 8px;
+                        font-weight: bold;
+                        transition: all 0.2s ease;
+                        font-size: 16px;
+                    }
+                    .btn:hover {
+                        background-color: #4752c4;
+                        transform: scale(1.05);
+                    }
+                    .success-icon {
+                        width: 80px;
+                        height: 80px;
+                        background: #23a559;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px auto;
+                        box-shadow: 0 0 20px rgba(35, 165, 89, 0.4);
+                        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s forwards;
+                        transform: scale(0);
+                    }
+                    .checkmark {
+                        width: 40px;
+                        height: 20px;
+                        border-bottom: 5px solid white;
+                        border-right: 5px solid white;
+                        transform: rotate(-45deg) translate(2px, -2px);
+                        display: block;
+                    }
+                    .avatar {
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        margin-bottom: 20px;
+                        border: 3px solid #5865F2;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    }
+                    @keyframes fadeInUp {
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    @keyframes popIn {
+                        to { transform: scale(1); }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="success-icon">
+                        <div class="checkmark"></div>
                     </div>
-                </body>
+                    <h1>Verification Successful!</h1>
+                    <p>You have been verified as<br><strong>${robloxUser.preferred_username || robloxUser.name}</strong></p>
+                    
+                    <a href="discord://" class="btn">Return to Discord</a>
+                    
+                    <script>
+                        setTimeout(function() {
+                            window.location.href = "discord://";
+                        }, 2000); // 2 saniye bekleyip yönlendir
+                    </script>
+                </div>
+            </body>
             </html>
         `);
 

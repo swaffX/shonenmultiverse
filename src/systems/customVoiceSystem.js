@@ -36,7 +36,53 @@ async function initCustomVoiceSystem(client) {
     // Check for empty channels every 5 minutes
     setInterval(() => checkEmptyChannels(client), 5 * 60 * 1000);
 
+    // Restore tracking for existing rooms (Fix for restart issue)
+    await loadExistingRooms(client);
+
     console.log('🎤 Custom voice system initialized!');
+}
+
+/**
+ * Load existing custom voice channels from the category
+ */
+async function loadExistingRooms(client) {
+    try {
+        const guild = client.guilds.cache.first(); // Assuming single guild for now, or loop
+        if (!guild) return;
+
+        const category = guild.channels.cache.get(CATEGORY_ID);
+        if (!category) return;
+
+        // Get voices in category (excluding setup channel)
+        const voiceChannels = category.children.cache.filter(c =>
+            c.type === ChannelType.GuildVoice &&
+            c.id !== SETUP_CHANNEL_ID
+        );
+
+        console.log(`🎤 Found ${voiceChannels.size} existing custom rooms. Restoring tracking...`);
+
+        for (const [id, channel] of voiceChannels) {
+            // Try to find owner from permission overwrites
+            // The owner usually has ManageChannels
+            let ownerId = null;
+            channel.permissionOverwrites.cache.forEach(perm => {
+                if (perm.type === 1 && perm.allow.has(PermissionFlagsBits.ManageChannels)) { // Type 1 = Member
+                    ownerId = perm.id;
+                }
+            });
+
+            // Re-add to tracker
+            activeRooms.set(id, {
+                ownerId: ownerId || 'unknown',
+                createdAt: new Date(), // Approximate
+                lastEmpty: channel.members.size === 0 ? Date.now() : null,
+                isLocked: channel.name.includes('🔒'),
+                whitelist: ownerId ? [ownerId] : []
+            });
+        }
+    } catch (error) {
+        console.error('Error loading existing rooms:', error);
+    }
 }
 
 /**
