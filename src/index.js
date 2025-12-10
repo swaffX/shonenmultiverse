@@ -285,7 +285,8 @@ app.get('/auth/roblox/callback', async (req, res) => {
                     <div style="text-align: center;">
                         <h1>✅ Verification Successful!</h1>
                         <p>You have been verified as <strong>${robloxUser.preferred_username || robloxUser.name}</strong>.</p>
-                        <p>You can close this window now.</p>
+                        <br>
+                        <a href="discord://" style="background-color: #5865F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Return to Discord</a>
                     </div>
                 </body>
             </html>
