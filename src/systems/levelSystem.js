@@ -6,7 +6,7 @@ const { formatDuration, getRequiredXP, getLevelFromXP, sumXPToLevel, getWeekNumb
 const XP_PER_MESSAGE = 15;
 const XP_PER_VOICE_MINUTE = 5;
 const XP_COOLDOWN = 60000; // 1 minute between XP gains
-const LEVEL_CHANNEL_ID = '1448093485205815437';
+const LEVEL_CHANNEL_ID = '1448111611733741710';
 
 // Track active voice users
 const activeVoiceUsers = new Map();
@@ -242,24 +242,37 @@ async function processVoiceSession(member, guildId, key, client) {
 }
 
 /**
- * Send level up message
+ * Send level up message - Modern Design
  */
 async function sendLevelUpMessage(guild, user, level, client) {
     const channel = guild.channels.cache.get(LEVEL_CHANNEL_ID);
     if (!channel) return;
 
+    // Get next level XP requirement
+    const nextLevelXP = getRequiredXP(level);
+
+    // Create modern gradient-style embed
     const embed = new EmbedBuilder()
-        .setColor('#FFD700')
+        .setColor('#00D166')
         .setAuthor({
-            name: '🎉 Level Up!',
-            iconURL: user.displayAvatarURL({ dynamic: true })
+            name: 'LEVEL UP!',
+            iconURL: 'https://cdn.discordapp.com/emojis/1070968752157892678.gif'
         })
         .setDescription([
-            `**${user.tag}** has reached **Level ${level}**!`,
+            `### 🎊 Congratulations <@${user.id}>!`,
             '',
-            `Keep chatting and being active to level up more! 🚀`
+            `You've advanced to **Level ${level}**`,
+            '',
+            `━━━━━━━━━━━━━━━━━━━━━━`,
+            '',
+            `📊 **Next Goal:** Level ${level + 1}`,
+            `✨ **XP Needed:** \`${nextLevelXP.toLocaleString()} XP\``,
+            '',
+            `*Keep chatting and being active!*`
         ].join('\n'))
         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setImage('https://media.discordapp.net/attachments/1070968752157892678/level-up-banner.gif')
+        .setFooter({ text: `${guild.name} • Level System`, iconURL: guild.iconURL({ dynamic: true }) })
         .setTimestamp();
 
     await channel.send({ content: `<@${user.id}>`, embeds: [embed] });
