@@ -4,7 +4,7 @@ const { formatDuration, getRequiredXP, getLevelFromXP, sumXPToLevel, getWeekNumb
 
 // XP Settings
 const XP_PER_MESSAGE = 15;
-const XP_PER_VOICE_MINUTE = 5;
+const XP_PER_VOICE_MINUTE = 2;
 const XP_COOLDOWN = 60000; // 1 minute between XP gains
 const LEVEL_CHANNEL_ID = '1448111611733741710';
 
