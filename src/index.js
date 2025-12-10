@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, Collection, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, ActivityType, Events } = require('discord.js');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
@@ -76,7 +76,7 @@ async function init() {
 }
 
 // Ready event
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
     console.log(`✅ Logged in as ${client.user.tag}!`);
     console.log(`📊 Active in ${client.guilds.cache.size} server(s)`);
 
