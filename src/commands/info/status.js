@@ -13,7 +13,15 @@ module.exports = {
         try {
             // 1. Get Universe ID from Place ID
             const placeRes = await fetch(`https://games.roblox.com/v1/games/multiget-place-details?placeIds=${PLACE_ID}&secure=true`);
-            if (!placeRes.ok) throw new Error('Failed to fetch place details');
+
+            if (placeRes.status === 401 || placeRes.status === 403) {
+                return interaction.editReply({
+                    content: '🔒 **Game is Private**\nI cannot fetch stats for private games. Please set the game to **Public** to see stats.',
+                    embeds: []
+                });
+            }
+
+            if (!placeRes.ok) throw new Error(`Failed to fetch place details (Status: ${placeRes.status})`);
 
             const placeData = await placeRes.json();
             const universeId = placeData[0]?.universeId;
