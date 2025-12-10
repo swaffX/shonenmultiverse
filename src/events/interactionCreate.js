@@ -4,6 +4,13 @@ const { errorEmbed, successEmbed } = require('../utils/embedBuilder');
 const { joinGiveaway, leaveGiveaway, updateGiveawayEmbed } = require('../systems/giveawaySystem');
 const { createTicket, closeTicket } = require('../systems/ticketSystem');
 const { handleStatsButton } = require('../systems/statsEmbedSystem');
+const {
+    showRoomSettingsModal,
+    handleRoomSettingsModal,
+    handleControlPanelButton,
+    handleLimitModal,
+    handleWhitelistModal
+} = require('../systems/customVoiceSystem');
 const Guild = require('../models/Guild');
 const logger = require('../utils/logger');
 const config = require('../config/config');
@@ -152,6 +159,13 @@ async function handleButtonInteraction(interaction, client) {
     else if (customId === 'stats_weekly' || customId === 'stats_monthly') {
         await handleStatsButton(interaction);
     }
+    // Custom voice buttons
+    else if (customId === 'customvoice_create') {
+        await showRoomSettingsModal(interaction);
+    }
+    else if (customId.startsWith('customvoice_')) {
+        await handleControlPanelButton(interaction);
+    }
 }
 
 async function handleSelectMenuInteraction(interaction, client) {
@@ -216,7 +230,9 @@ async function handleInfoSelect(interaction, client) {
 }
 
 async function handleModalSubmit(interaction, client) {
-    if (interaction.customId === 'ticket_modal') {
+    const customId = interaction.customId;
+
+    if (customId === 'ticket_modal') {
         await interaction.deferReply({ ephemeral: true });
 
         try {
@@ -245,6 +261,18 @@ async function handleModalSubmit(interaction, client) {
                 embeds: [errorEmbed('Error', 'Failed to create ticket. Please try again.')]
             });
         }
+    }
+    // Custom voice room settings modal
+    else if (customId === 'customvoice_settings') {
+        await handleRoomSettingsModal(interaction);
+    }
+    // Custom voice limit modal
+    else if (customId === 'customvoice_limit_modal') {
+        await handleLimitModal(interaction);
+    }
+    // Custom voice whitelist modal
+    else if (customId === 'customvoice_whitelist_modal') {
+        await handleWhitelistModal(interaction);
     }
 }
 

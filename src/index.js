@@ -13,6 +13,7 @@ const { initServerStats, loadStatsChannels } = require('./systems/serverStatsSys
 const { initBoosterSystem } = require('./systems/boosterSystem');
 const { initStatsEmbed } = require('./systems/statsEmbedSystem');
 const { initVoiceTracking } = require('./systems/levelSystem');
+const { initCustomVoiceSystem } = require('./systems/customVoiceSystem');
 const config = require('./config/config');
 const Guild = require('./models/Guild');
 
@@ -102,6 +103,9 @@ client.once('ready', () => {
 
     // Initialize voice tracking
     initVoiceTracking(client);
+
+    // Initialize custom voice channel system
+    initCustomVoiceSystem(client);
 
     // Load saved stats channels from database
     (async () => {
