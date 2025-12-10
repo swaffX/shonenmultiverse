@@ -63,4 +63,59 @@ async function createWelcomeImage(member) {
     }
 }
 
-module.exports = { createWelcomeImage };
+const path = require('path');
+
+async function createLeaveImage(member) {
+    try {
+        const width = 1024;
+        const height = 500;
+
+        // Create new image with dark background (Reddish tint for goodbye)
+        const image = new Jimp(width, height, '#2c1a1a');
+
+        const overlay = new Jimp(width, height, '#000000');
+        overlay.opacity(0.3);
+        image.composite(overlay, 0, 0);
+
+        // Load Avatar
+        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
+        const avatar = await Jimp.read(avatarUrl);
+
+        // Resize and circle mask
+        avatar.resize(256, 256);
+        avatar.circle();
+
+        const avatarX = (width / 2) - 128;
+        const avatarY = 50;
+
+        image.composite(avatar, avatarX, avatarY);
+
+        // Load Fonts
+        const fontTitle = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+        const fontSubtitle = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+
+        // Text: GOODBYE
+        const titleText = 'GOODBYE';
+        const titleWidth = Jimp.measureText(fontTitle, titleText);
+        image.print(fontTitle, (width / 2) - (titleWidth / 2), 330, titleText);
+
+        // Text: Username
+        const username = member.user.username.toUpperCase();
+        const userWidth = Jimp.measureText(fontSubtitle, username);
+        image.print(fontSubtitle, (width / 2) - (userWidth / 2), 410, username);
+
+        // Text: We will miss you
+        const footerText = 'WE WILL MISS YOU';
+        const footerWidth = Jimp.measureText(fontSubtitle, footerText);
+        image.print(fontSubtitle, (width / 2) - (footerWidth / 2), 450, footerText);
+
+        const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
+        return new AttachmentBuilder(buffer, { name: 'goodbye.png' });
+
+    } catch (error) {
+        console.error('Error generating goodbye image:', error);
+        return null;
+    }
+}
+
+module.exports = { createWelcomeImage, createLeaveImage };

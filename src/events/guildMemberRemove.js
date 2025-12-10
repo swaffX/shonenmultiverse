@@ -3,6 +3,7 @@ const { logMemberLeave } = require('../systems/loggingSystem');
 const { deleteUserData } = require('../systems/statsEmbedSystem');
 const config = require('../config/config');
 const Guild = require('../models/Guild');
+const { createLeaveImage } = require('../systems/welcomeImageSystem');
 
 module.exports = {
     name: Events.GuildMemberRemove,
@@ -81,11 +82,18 @@ async function sendGoodbyeMessage(member, client) {
             })
             .setTimestamp();
 
-        if (guildData.goodbye.bannerUrl) {
-            goodbyeEmbed.setImage(guildData.goodbye.bannerUrl);
-        }
+        // Generate custom leave image
+        const attachment = await createLeaveImage(member);
 
-        await channel.send({ embeds: [goodbyeEmbed] });
+        if (attachment) {
+            goodbyeEmbed.setImage('attachment://goodbye.png');
+            await channel.send({ embeds: [goodbyeEmbed], files: [attachment] });
+        } else {
+            if (guildData.goodbye.bannerUrl) {
+                goodbyeEmbed.setImage(guildData.goodbye.bannerUrl);
+            }
+            await channel.send({ embeds: [goodbyeEmbed] });
+        }
         console.log(`👋 Goodbye message sent for ${member.user.tag} in ${member.guild.name}`);
     } catch (error) {
         console.error('Goodbye message error:', error);
