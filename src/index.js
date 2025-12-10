@@ -290,8 +290,27 @@ app.get('/auth/roblox/callback', async (req, res) => {
     }
 });
 
-app.listen(port, '0.0.0.0', () => {
+app.listen(port, '0.0.0.0', async () => {
     console.log(`🌍 Web server running on port ${port}`);
+
+    // Start LocalTunnel for HTTPS
+    try {
+        const localtunnel = require('localtunnel');
+        const tunnel = await localtunnel({ port: port, subdomain: 'shonen-multiverse-auth' });
+        console.log(`🌍 Public HTTPS URL: ${tunnel.url}`);
+
+        // Update config redirect URI dynamically if not set
+        if (!config.roblox.redirectUri || config.roblox.redirectUri.includes('localhost') || config.roblox.redirectUri.includes('194.105')) {
+            console.log(`⚠️ Updating Redirect URI to Tunnel URL: ${tunnel.url}/auth/roblox/callback`);
+            config.roblox.redirectUri = `${tunnel.url}/auth/roblox/callback`;
+        }
+
+        tunnel.on('close', () => {
+            console.log('⚠️ LocalTunnel closed');
+        });
+    } catch (err) {
+        console.error('❌ Failed to start LocalTunnel:', err);
+    }
 });
 
 // Start the bot with error handling
