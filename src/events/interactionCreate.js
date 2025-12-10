@@ -1,5 +1,5 @@
 // Partial content of interactionCreate.js to update handleInfoSelect function
-const { Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
+const { Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { errorEmbed, successEmbed } = require('../utils/embedBuilder');
 const { joinGiveaway, leaveGiveaway, updateGiveawayEmbed } = require('../systems/giveawaySystem');
 const { createTicket, closeTicket } = require('../systems/ticketSystem');
@@ -108,8 +108,9 @@ async function handleButtonInteraction(interaction, client) {
 
     // Handle Help Button
     if (customId === 'verify_help') {
+        const ticketChannelId = '1439267075456761906'; // Ticket Channel ID
         await interaction.reply({
-            content: 'Please open a ticket in <#123456789> (Ticket Channel) for assistance.', // Placeholder channel
+            content: `🆘 Need help? Please open a ticket in our support channel: <#${ticketChannelId}>`,
             flags: 64
         });
         return;
