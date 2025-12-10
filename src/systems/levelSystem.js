@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
-const { assignLevelRole } = require('./statsEmbedSystem');
+const { formatDuration, getRequiredXP, getLevelFromXP, sumXPToLevel, getWeekNumber } = require('../utils/levelUtils');
 
 // XP Settings
 const XP_PER_MESSAGE = 15;
@@ -282,6 +282,8 @@ async function sendLevelUpMessage(guild, user, level, client) {
  * Check and assign level roles
  */
 async function checkLevelRoles(member, level) {
+    // Lazy require to avoid circular dependency
+    const { assignLevelRole } = require('./statsEmbedSystem');
     await assignLevelRole(member, level);
 }
 

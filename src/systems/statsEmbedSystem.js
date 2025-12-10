@@ -1,7 +1,7 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const User = require('../models/User');
 const Guild = require('../models/Guild');
-const { formatDuration } = require('./levelSystem');
+const { formatDuration } = require('../utils/levelUtils');
 
 // Stats channel
 const STATS_CHANNEL_ID = '1448093485205815437';

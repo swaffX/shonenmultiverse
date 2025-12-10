@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const User = require('../../models/User');
 const Guild = require('../../models/Guild');
-const { getUserRank, formatDuration } = require('../../systems/levelSystem');
+const { getUserRank } = require('../../systems/levelSystem');
+const { formatDuration } = require('../../utils/levelUtils');
 const { getLevelRoles } = require('../../systems/statsEmbedSystem');
 
 module.exports = {
