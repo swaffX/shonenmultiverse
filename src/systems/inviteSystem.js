@@ -51,14 +51,14 @@ async function handleMemberJoin(member) {
 
         if (!usedInvite || !usedInvite.inviter) return;
 
-        const oderster = usedInvite.inviter;
+        const inviter = usedInvite.inviter;
 
         // Check if fake invite (account less than 7 days old)
         const accountAge = Date.now() - member.user.createdTimestamp;
         const isFake = accountAge < 7 * 24 * 60 * 60 * 1000; // 7 days
 
         // Update database
-        const inviteData = await Invite.findOrCreate(oderster.id, guild.id);
+        const inviteData = await Invite.findOrCreate(inviter.id, guild.id);
 
         inviteData.invitedUsers.push({
             userId: member.id,
@@ -77,10 +77,10 @@ async function handleMemberJoin(member) {
         await inviteData.save();
 
         // Send notification
-        await sendInviteNotification(guild, member, oderster, inviteData, isFake);
+        await sendInviteNotification(guild, member, inviter, inviteData, isFake);
 
         // Check milestones
-        await checkMilestone(guild, oderster, inviteData);
+        await checkMilestone(guild, inviter, inviteData);
 
     } catch (error) {
         console.error('Invite tracking error:', error);
@@ -118,26 +118,57 @@ async function handleMemberLeave(member) {
 /**
  * Send invite notification to channel
  */
-async function sendInviteNotification(guild, member, oderster, inviteData, isFake) {
+async function sendInviteNotification(guild, member, inviter, inviteData, isFake) {
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
     if (!channel) return;
 
+    // Calculate account age
+    const accountAgeMs = Date.now() - member.user.createdTimestamp;
+    const accountAgeDays = Math.floor(accountAgeMs / (1000 * 60 * 60 * 24));
+    const accountAgeText = accountAgeDays > 0 ? `${accountAgeDays} days` : 'Less than a day';
+
     const embed = new EmbedBuilder()
-        .setColor(isFake ? '#FFA500' : '#00D166')
+        .setColor(isFake ? '#F59E0B' : '#10B981')
         .setAuthor({
-            name: '📨 Yeni Davet',
+            name: '📨 New Invite',
+            iconURL: guild.iconURL({ dynamic: true })
+        })
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setDescription([
+            `### ${member.user.username} joined the server!`,
+            ``
+        ].join('\n'))
+        .addFields(
+            {
+                name: '👤 Invited By',
+                value: `<@${inviter.id}>`,
+                inline: true
+            },
+            {
+                name: '✅ Valid Invites',
+                value: `\`${inviteData.validInvites}\``,
+                inline: true
+            },
+            {
+                name: '📊 Total Invites',
+                value: `\`${inviteData.totalInvites}\` (+${inviteData.leftInvites} left)`,
+                inline: true
+            }
+        )
+        .setFooter({
+            text: `Account Age: ${accountAgeText} • ID: ${member.id}`,
             iconURL: member.user.displayAvatarURL({ dynamic: true })
         })
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 128 }))
-        .setDescription([
-            `**${member.user.username}** sunucuya katıldı!`,
-            '',
-            `👤 **Davet Eden:** <@${oderster.id}>`,
-            `📊 **Toplam Davet:** \`${inviteData.validInvites}\` (\`+${inviteData.leftInvites}\` ayrıldı)`,
-            isFake ? '\n⚠️ *Hesap 7 günden yeni, geçersiz sayıldı.*' : ''
-        ].join('\n'))
-        .setFooter({ text: `Kullanıcı ID: ${member.id}` })
         .setTimestamp();
+
+    // Add warning for fake invites
+    if (isFake) {
+        embed.addFields({
+            name: '⚠️ Warning',
+            value: 'Account is less than 7 days old - marked as suspicious.',
+            inline: false
+        });
+    }
 
     await channel.send({ embeds: [embed] });
 }
@@ -145,7 +176,7 @@ async function sendInviteNotification(guild, member, oderster, inviteData, isFak
 /**
  * Check for milestone rewards
  */
-async function checkMilestone(guild, oderster, inviteData) {
+async function checkMilestone(guild, inviter, inviteData) {
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
 
     for (const milestone of INVITE_MILESTONES) {
@@ -160,12 +191,16 @@ async function checkMilestone(guild, oderster, inviteData) {
                 if (channel) {
                     const embed = new EmbedBuilder()
                         .setColor('#FFD700')
-                        .setTitle('🎉 DAVET MİLESTONE!')
+                        .setTitle('🎉 INVITE MILESTONE REACHED!')
+                        .setThumbnail(inviter.displayAvatarURL({ dynamic: true, size: 256 }))
                         .setDescription([
-                            `<@${oderster.id}> **${milestone}** davete ulaştı!`,
-                            '',
-                            '🏆 Tebrikler! Özel ödüller için yetkililerle iletişime geç.'
+                            `### Congratulations <@${inviter.id}>!`,
+                            ``,
+                            `You've reached **${milestone}** valid invites! 🏆`,
+                            ``,
+                            `Thank you for helping grow our community!`
                         ].join('\n'))
+                        .setFooter({ text: 'Contact staff for special rewards!' })
                         .setTimestamp();
 
                     await channel.send({ embeds: [embed] });

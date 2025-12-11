@@ -38,10 +38,7 @@ async function sendGoodbyeMessage(member, client) {
 
         const memberCount = member.guild.memberCount;
 
-        // Calculate how long they were in the server
-        const joinedAt = member.joinedTimestamp;
-        const duration = joinedAt ? formatDuration(Date.now() - joinedAt) : 'Unknown';
-
+        // Simple modern embed - no fields, clean design
         const goodbyeEmbed = new EmbedBuilder()
             .setColor('#ED4245')
             .setAuthor({
@@ -51,23 +48,6 @@ async function sendGoodbyeMessage(member, client) {
             .setTitle(`Goodbye, ${member.user.username}`)
             .setDescription(`Goodbye **${member.user.username}**.. We are **${memberCount}** people now.`)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
-            .addFields(
-                {
-                    name: '👤 Username',
-                    value: member.user.username,
-                    inline: true
-                },
-                {
-                    name: '📊 Members Now',
-                    value: `${memberCount}`,
-                    inline: true
-                },
-                {
-                    name: '⏱️ Time in Server',
-                    value: duration,
-                    inline: true
-                }
-            )
             .setFooter({
                 text: `${member.guild.name} • We'll miss you!`,
                 iconURL: member.guild.iconURL({ dynamic: true })
@@ -88,17 +68,4 @@ async function sendGoodbyeMessage(member, client) {
     } catch (error) {
         console.error('Goodbye message error:', error);
     }
-}
-
-// Helper function to format duration
-function formatDuration(ms) {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m`;
-    return `${seconds}s`;
 }

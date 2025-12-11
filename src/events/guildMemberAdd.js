@@ -49,7 +49,7 @@ async function sendWelcomeMessage(member, client) {
 
         const memberCount = member.guild.memberCount;
 
-        // Modern styled embed
+        // Simple modern embed - no fields, clean design
         const welcomeEmbed = new EmbedBuilder()
             .setColor('#5865F2')
             .setAuthor({
@@ -59,23 +59,6 @@ async function sendWelcomeMessage(member, client) {
             .setTitle(`Welcome, ${member.user.username}!`)
             .setDescription(`Welcome <@${member.id}>! Thanks for joining **${member.guild.name}**, we are **${memberCount}** people now.`)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
-            .addFields(
-                {
-                    name: '👤 Username',
-                    value: member.user.username,
-                    inline: true
-                },
-                {
-                    name: '📊 Member #',
-                    value: `#${memberCount}`,
-                    inline: true
-                },
-                {
-                    name: '📅 Joined',
-                    value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
-                    inline: true
-                }
-            )
             .setFooter({
                 text: `${member.guild.name} • Enjoy your stay!`,
                 iconURL: member.guild.iconURL({ dynamic: true })
@@ -96,11 +79,4 @@ async function sendWelcomeMessage(member, client) {
     } catch (error) {
         console.error('Welcome message error:', error);
     }
-}
-
-// Helper function for ordinal suffix
-function getOrdinalSuffix(n) {
-    const s = ['th', 'st', 'nd', 'rd'];
-    const v = n % 100;
-    return s[(v - 20) % 10] || s[v] || s[0];
 }
