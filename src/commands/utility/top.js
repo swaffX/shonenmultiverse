@@ -7,6 +7,9 @@ module.exports = {
         .setName('top')
         .setDescription('View server leaderboards')
         .addSubcommand(sub =>
+            sub.setName('leaderboard')
+                .setDescription('General leaderboard overview'))
+        .addSubcommand(sub =>
             sub.setName('messages')
                 .setDescription('Top message senders'))
         .addSubcommand(sub =>
@@ -33,6 +36,9 @@ module.exports = {
 
         try {
             switch (subcommand) {
+                case 'leaderboard':
+                    embed = await getGeneralLeaderboard(interaction.guild);
+                    break;
                 case 'messages':
                     embed = await getMessagesLeaderboard(interaction.guild);
                     break;
@@ -207,6 +213,63 @@ function createModernLeaderboard(guild, emoji, title, subtitle, data, formatter,
         .setTimestamp();
 }
 
+async function getGeneralLeaderboard(guild) {
+    // Get top 3 from each category
+    const [topLevel, topMessages, topVoice] = await Promise.all([
+        User.find({ guildId: guild.id }).sort({ xp: -1 }).limit(3),
+        User.find({ guildId: guild.id }).sort({ totalMessages: -1 }).limit(3),
+        User.find({ guildId: guild.id }).sort({ totalVoiceTime: -1 }).limit(3)
+    ]);
+
+    const formatTop3 = (users, getValue) => {
+        if (users.length === 0) return '> *No data yet*';
+        return users.map((u, i) => {
+            const medal = i === 0 ? '👑' : i === 1 ? '🥈' : '🥉';
+            return `${medal} <@${u.oderId}> • ${getValue(u)}`;
+        }).join('\n');
+    };
+
+    return new EmbedBuilder()
+        .setColor('#2B2D31')
+        .setAuthor({
+            name: 'SHONEN MULTIVERSE',
+            iconURL: guild.iconURL({ dynamic: true })
+        })
+        .setTitle('🏆 Server Leaderboard')
+        .setDescription(
+            `> Top members across all categories\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+        )
+        .addFields(
+            {
+                name: '⭐ Top Levels',
+                value: formatTop3(topLevel, u => `**Lv.${u.level}**`),
+                inline: true
+            },
+            {
+                name: '💬 Top Messages',
+                value: formatTop3(topMessages, u => `**${u.totalMessages.toLocaleString()}**`),
+                inline: true
+            },
+            {
+                name: '🎤 Top Voice',
+                value: formatTop3(topVoice, u => `**${formatTime(u.totalVoiceTime)}**`),
+                inline: true
+            }
+        )
+        .addFields({
+            name: '📊 View More',
+            value: '```\n/top level    - Full level rankings\n/top messages - Full message rankings\n/top voice    - Full voice rankings\n/top weekly   - This week\'s activity\n/top invites  - Top recruiters\n```',
+            inline: false
+        })
+        .setThumbnail(guild.iconURL({ dynamic: true, size: 512 }))
+        .setFooter({
+            text: `🏆 ${guild.name} Leaderboard`,
+            iconURL: guild.iconURL({ dynamic: true })
+        })
+        .setTimestamp();
+}
+
 function formatTime(minutes) {
     if (!minutes) return '0m';
     const hours = Math.floor(minutes / 60);
@@ -216,3 +279,4 @@ function formatTime(minutes) {
     }
     return `${mins}m`;
 }
+
