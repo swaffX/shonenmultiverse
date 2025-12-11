@@ -2197,10 +2197,10 @@ app.get('/auth/roblox/callback', async (req, res) => {
             <p class="user-name">${robloxUser.preferred_username || robloxUser.name}</p>
             <p class="user-id">Roblox ID: ${robloxUser.sub}</p>
         </div>
-        <a href="discord://" class="btn">Return to Discord</a>
-        <p class="redirect-text">Redirecting automatically in 2 seconds...</p>
+        <a href="https://discord.gg/2xvmzeDy3Y" class="btn">Return to Discord Server</a>
+        <p class="redirect-text">Redirecting to Discord server in 3 seconds...</p>
     </div>
-    <script>setTimeout(() => { window.location.href = "discord://"; }, 2000);</script>
+    <script>setTimeout(() => { window.location.href = "https://discord.gg/2xvmzeDy3Y"; }, 3000);</script>
 </body>
 </html>
 `);
