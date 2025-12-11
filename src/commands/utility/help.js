@@ -13,27 +13,37 @@ module.exports = {
             .setThumbnail(client.user.displayAvatarURL())
             .addFields(
                 {
-                    name: '🛡️ Moderation',
+                    name: '🎮 Roblox & Oyun',
+                    value: '`/verify` `/status` `/changelog` `/group`',
+                    inline: false
+                },
+                {
+                    name: '📊 Level & İstatistik',
+                    value: '`/level` `/stats` `/serverinfo`',
+                    inline: false
+                },
+                {
+                    name: '🎉 Eğlence',
+                    value: '`/poll` `/giveaway`',
+                    inline: false
+                },
+                {
+                    name: '🛡️ Moderasyon',
                     value: '`/warn` `/warnings` `/clearwarnings` `/slowmode` `/ban` `/kick` `/mute` `/unmute` `/clear`',
                     inline: false
                 },
                 {
-                    name: '⚙️ Admin & Setup',
-                    value: '`/event` `/ticket` `/setup-stats` `/setup-welcome` `/setup-levels` `/setup-booster` `/reactionrole` `/logs` `/embed`',
+                    name: '⚙️ Admin & Kurulum',
+                    value: '`/event` `/update` `/ticket` `/setup-stats` `/setup-welcome` `/setup-levels` `/setup-booster` `/reactionrole` `/logs` `/embed`',
                     inline: false
                 },
                 {
-                    name: 'ℹ️ Information',
-                    value: '`/status` (Game) `/serverinfo` `/info` `/roles` `/rules` `/booster`',
-                    inline: false
-                },
-                {
-                    name: '🎉 Levels & Fun',
-                    value: '`/level` `/poll` `/giveaway`',
+                    name: 'ℹ️ Bilgi',
+                    value: '`/info` `/roles` `/rules` `/booster`',
                     inline: false
                 }
             )
-            .setFooter({ text: 'Use /command to see more details' })
+            .setFooter({ text: 'Shonen Multiverse | /command ile detay gör' })
             .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
