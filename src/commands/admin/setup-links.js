@@ -45,7 +45,7 @@ module.exports = {
                     inline: false
                 }
             )
-            .setImage('https://i.imgur.com/sGJfPkK.gif')
+            .setImage('https://cdn.discordapp.com/attachments/531892263652032522/1448720874743267379/Gemini_Generated_Image_df23r5df23r5df23.png')
             .setFooter({
                 text: '⭐ Follow us everywhere for the latest updates!',
                 iconURL: interaction.guild.iconURL({ dynamic: true })

@@ -82,7 +82,7 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
             .setTitle(`${boostEmoji} ${guild.name}`)
             .setDescription(
                 `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-                `<:boost:1064277018159849514> **Boost Statistics**\n\n` +
+                `💎 **Boost Statistics**\n\n` +
                 `> 🚀 **Total Boosts:** \`${boostCount}\`\n` +
                 `> ⚡ **Boost Level:** \`Level ${boostLevel}\`\n` +
                 `> 👥 **Active Boosters:** \`${boostersArray.length}\`\n` +
