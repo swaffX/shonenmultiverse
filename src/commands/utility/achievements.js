@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getUserAchievements } = require('../../systems/achievementSystem');
+const { getUserAchievements, ACHIEVEMENTS } = require('../../systems/achievementSystem');
+const { createAchievementCard } = require('../../systems/welcomeImageSystem');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,54 +20,79 @@ module.exports = {
             // Pass guild for invite count
             const achievements = await getUserAchievements(targetUser.id, interaction.guild.id, interaction.guild);
 
-            // Group by category - ALL ENGLISH
-            const categories = {
-                messages: { name: '💬 Messages', items: [] },
-                voice: { name: '🎤 Voice', items: [] },
-                level: { name: '⭐ Level', items: [] },
-                invites: { name: '📨 Invites', items: [] },
-                special: { name: '✨ Special', items: [] }
-            };
+            // Calculate stats
+            const unlocked = achievements.filter(a => a.unlocked);
+            const totalXP = unlocked.reduce((sum, a) => sum + (a.xpReward || 0), 0);
 
-            let totalUnlocked = 0;
-            const totalAchievements = achievements.length;
+            // Find rarest achievement (highest tier unlocked)
+            const rarestAch = unlocked.sort((a, b) => (b.tier || 0) - (a.tier || 0))[0];
+            const rarest = rarestAch ? rarestAch.name.replace(/[^\w\s]/g, '').trim() : 'None yet';
 
-            for (const ach of achievements) {
-                const type = ach.requirement.type;
-                if (ach.unlocked) totalUnlocked++;
+            const stats = { totalXP, rarest };
 
-                const status = ach.unlocked
-                    ? `✅ ${ach.emoji} **${ach.name}**`
-                    : `⬜ ${ach.emoji} ${ach.name} (${ach.progress}/${ach.max})`;
+            // Generate achievement card image
+            const attachment = await createAchievementCard(targetUser, achievements, stats);
 
-                if (categories[type]) {
-                    categories[type].items.push(status);
+            if (attachment) {
+                // Simple embed with image
+                const embed = new EmbedBuilder()
+                    .setColor('#FFD700')
+                    .setAuthor({
+                        name: `${targetUser.username}'s Achievements`,
+                        iconURL: targetUser.displayAvatarURL({ dynamic: true })
+                    })
+                    .setDescription(`🏆 **${unlocked.length}/${achievements.length}** achievements unlocked\n💰 **${totalXP} XP** earned from achievements`)
+                    .setImage('attachment://achievements.png')
+                    .setFooter({
+                        text: 'Keep grinding to unlock more achievements!',
+                        iconURL: interaction.guild.iconURL({ dynamic: true })
+                    })
+                    .setTimestamp();
+
+                await interaction.editReply({ embeds: [embed], files: [attachment] });
+            } else {
+                // Fallback to text-based display
+                const categories = {
+                    messages: { name: '💬 Messages', items: [] },
+                    voice: { name: '🎤 Voice', items: [] },
+                    level: { name: '⭐ Level', items: [] },
+                    invites: { name: '📨 Invites', items: [] },
+                    special: { name: '✨ Special', items: [] }
+                };
+
+                for (const ach of achievements) {
+                    const type = ach.requirement?.type || ach.category;
+                    const status = ach.unlocked
+                        ? `✅ **${ach.name}**`
+                        : `⬜ ${ach.name} (${ach.progress}/${ach.max})`;
+
+                    if (categories[type]) {
+                        categories[type].items.push(status);
+                    }
                 }
-            }
 
-            // Build embed - ALL ENGLISH
-            const embed = new EmbedBuilder()
-                .setColor('#FFD700')
-                .setAuthor({
-                    name: `${targetUser.username} - Achievements`,
-                    iconURL: targetUser.displayAvatarURL({ dynamic: true })
-                })
-                .setDescription(`🏆 **${totalUnlocked}/${totalAchievements}** achievements unlocked`)
-                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-                .setTimestamp();
+                const embed = new EmbedBuilder()
+                    .setColor('#FFD700')
+                    .setAuthor({
+                        name: `${targetUser.username} - Achievements`,
+                        iconURL: targetUser.displayAvatarURL({ dynamic: true })
+                    })
+                    .setDescription(`🏆 **${unlocked.length}/${achievements.length}** achievements unlocked`)
+                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
+                    .setTimestamp();
 
-            // Add category fields
-            for (const [key, cat] of Object.entries(categories)) {
-                if (cat.items.length > 0) {
-                    embed.addFields({
-                        name: cat.name,
-                        value: cat.items.join('\n'),
-                        inline: false
-                    });
+                for (const [key, cat] of Object.entries(categories)) {
+                    if (cat.items.length > 0) {
+                        embed.addFields({
+                            name: cat.name,
+                            value: cat.items.join('\n'),
+                            inline: false
+                        });
+                    }
                 }
-            }
 
-            await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
+            }
 
         } catch (error) {
             console.error('Achievements command error:', error);
