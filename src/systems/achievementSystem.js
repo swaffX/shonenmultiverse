@@ -169,19 +169,6 @@ const ACHIEVEMENTS = {
         roleColor: '#2196F3',
         category: 'invites',
         tier: 3
-    },
-
-    // Special achievements - Dragon Ball themed (category: special)
-    early_bird: {
-        id: 'early_bird',
-        name: '🐦 Saiyan Pioneer',
-        description: 'Join among the first 100 members',
-        emoji: '🐦',
-        requirement: { type: 'special', condition: 'early_member' },
-        xpReward: 500,
-        roleColor: '#FFD700',
-        category: 'special',
-        tier: 1
     }
 };
 

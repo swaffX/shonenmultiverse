@@ -188,16 +188,16 @@ async function createInviteImage(user, inviterName = '') {
 async function createAchievementCard(user, achievements, stats) {
     try {
         const width = 900;
-        const height = 500;
+        const height = 520;
         const image = new Jimp(width, height);
 
         // Dark gradient background (dark purple to dark blue)
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const ratio = (x + y) / (width + height);
-                const r = Math.round(30 + (20 - 30) * ratio);
-                const g = Math.round(20 + (30 - 20) * ratio);
-                const b = Math.round(50 + (60 - 50) * ratio);
+                const r = Math.round(25 + (15 - 25) * ratio);
+                const g = Math.round(15 + (25 - 15) * ratio);
+                const b = Math.round(45 + (55 - 45) * ratio);
                 image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
             }
         }
@@ -207,8 +207,11 @@ async function createAchievementCard(user, achievements, stats) {
         const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
         const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
 
+        // Filter out special achievements
+        const mainAchievements = achievements.filter(a => a.category !== 'special');
+
         // Avatar
-        const avatarSize = 100;
+        const avatarSize = 90;
         const avatarUrl = user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
         const avatar = await Jimp.read(avatarUrl);
         avatar.resize(avatarSize, avatarSize);
@@ -219,29 +222,29 @@ async function createAchievementCard(user, achievements, stats) {
         const border = new Jimp(borderSize, borderSize, 0xFFD700FF);
         border.circle();
 
-        image.composite(border, 30 - 3, 30 - 3);
-        image.composite(avatar, 30, 30);
+        image.composite(border, 25 - 3, 20 - 3);
+        image.composite(avatar, 25, 20);
 
         // Username
         const username = user.displayName || user.username;
-        image.print(fontMedium, 150, 50, username);
+        image.print(fontMedium, 130, 35, username);
 
         // Achievement count
-        const unlocked = achievements.filter(a => a.unlocked).length;
-        const total = achievements.length;
-        image.print(fontSmall, 150, 95, `${unlocked}/${total} Achievements Unlocked`);
+        const unlocked = mainAchievements.filter(a => a.unlocked).length;
+        const total = mainAchievements.length;
+        image.print(fontSmall, 130, 75, `${unlocked}/${total} Achievements Unlocked`);
 
         // Draw progress bar
-        const barX = 30;
-        const barY = 150;
-        const barWidth = 840;
-        const barHeight = 25;
+        const barX = 25;
+        const barY = 125;
+        const barWidth = 850;
+        const barHeight = 20;
         const progress = unlocked / total;
 
-        // Background bar (dark)
+        // Background bar (dark with rounded effect)
         for (let y = barY; y < barY + barHeight; y++) {
             for (let x = barX; x < barX + barWidth; x++) {
-                image.setPixelColor(Jimp.rgbaToInt(40, 40, 60, 255), x, y);
+                image.setPixelColor(Jimp.rgbaToInt(35, 35, 55, 255), x, y);
             }
         }
 
@@ -250,107 +253,155 @@ async function createAchievementCard(user, achievements, stats) {
         for (let y = barY; y < barY + barHeight; y++) {
             for (let x = barX; x < barX + progressWidth; x++) {
                 const ratio = x / (barX + barWidth);
-                const r = Math.round(255);
+                const r = 255;
                 const g = Math.round(180 + (215 - 180) * ratio);
-                const b = Math.round(0 + (60 - 0) * ratio);
+                const b = Math.round(0 + (80 - 0) * ratio);
                 image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
             }
         }
 
-        // Category boxes
+        // Category boxes with achievement names
         const categories = [
-            { name: 'Messages', color: 0x3498DBFF, key: 'messages' },
-            { name: 'Voice', color: 0x2ECC71FF, key: 'voice' },
-            { name: 'Level', color: 0xE91E63FF, key: 'level' },
-            { name: 'Invites', color: 0x00BCD4FF, key: 'invites' }
+            { name: 'MESSAGES', color: 0x3498DBFF, key: 'messages', emoji: '💬' },
+            { name: 'VOICE', color: 0x2ECC71FF, key: 'voice', emoji: '🎤' },
+            { name: 'LEVEL', color: 0xE91E63FF, key: 'level', emoji: '⭐' },
+            { name: 'INVITES', color: 0x00BCD4FF, key: 'invites', emoji: '📨' }
         ];
 
-        const boxWidth = 200;
-        const boxHeight = 120;
-        const boxY = 200;
-        const spacing = 15;
-        const startX = 30;
+        const boxWidth = 210;
+        const boxHeight = 160;
+        const boxY = 160;
+        const spacing = 8;
+        const startX = 25;
 
         for (let i = 0; i < categories.length; i++) {
             const cat = categories[i];
             const boxX = startX + i * (boxWidth + spacing);
 
-            // Box background (semi-transparent)
+            // Box background (gradient effect)
             for (let y = boxY; y < boxY + boxHeight; y++) {
                 for (let x = boxX; x < boxX + boxWidth; x++) {
                     const color = Jimp.intToRGBA(cat.color);
-                    image.setPixelColor(Jimp.rgbaToInt(color.r, color.g, color.b, 180), x, y);
+                    const yRatio = (y - boxY) / boxHeight;
+                    const alpha = Math.round(200 - (yRatio * 80));
+                    image.setPixelColor(Jimp.rgbaToInt(
+                        Math.round(color.r * 0.8),
+                        Math.round(color.g * 0.8),
+                        Math.round(color.b * 0.8),
+                        alpha
+                    ), x, y);
                 }
             }
 
             // Category achievements
-            const catAchievements = achievements.filter(a => a.category === cat.key);
+            const catAchievements = mainAchievements.filter(a => a.category === cat.key);
             const catUnlocked = catAchievements.filter(a => a.unlocked).length;
             const catTotal = catAchievements.length;
 
-            // Print category name
-            image.print(fontSmall, boxX + 10, boxY + 10, cat.name);
+            // Print category name with count
+            image.print(fontSmall, boxX + 8, boxY + 6, `${cat.name} (${catUnlocked}/${catTotal})`);
 
-            // Print count
-            image.print(fontMedium, boxX + 10, boxY + 40, `${catUnlocked}/${catTotal}`);
-
-            // Progress indicator circles
-            const circleY = boxY + 95;
-            const circleSize = 12;
-            const circleSpacing = 18;
-            const circlesStartX = boxX + 10;
-
-            for (let j = 0; j < catTotal; j++) {
-                const circleX = circlesStartX + j * circleSpacing;
-                const isUnlocked = j < catUnlocked;
-
-                // Draw filled or empty circle
-                for (let cy = -circleSize / 2; cy < circleSize / 2; cy++) {
-                    for (let cx = -circleSize / 2; cx < circleSize / 2; cx++) {
-                        if (cx * cx + cy * cy <= (circleSize / 2) * (circleSize / 2)) {
-                            const px = Math.floor(circleX + cx);
-                            const py = Math.floor(circleY + cy);
-                            if (px >= 0 && px < width && py >= 0 && py < height) {
-                                if (isUnlocked) {
-                                    image.setPixelColor(0xFFD700FF, px, py); // Gold
-                                } else {
-                                    image.setPixelColor(0x404060FF, px, py); // Dark
-                                }
-                            }
-                        }
-                    }
-                }
+            // List achievements with checkmarks
+            let yOffset = boxY + 28;
+            for (const ach of catAchievements) {
+                const checkmark = ach.unlocked ? '✓' : '○';
+                const achName = ach.name.replace(/[^\w\s']/g, '').trim().substring(0, 20);
+                const displayText = `${checkmark} ${achName}`;
+                image.print(fontSmall, boxX + 8, yOffset, displayText);
+                yOffset += 20;
             }
         }
 
-        // Special achievements box
-        const specialX = startX;
-        const specialY = 340;
-        const specialWidth = (boxWidth * 4) + (spacing * 3);
-        const specialHeight = 70;
+        // Next Achievements Section
+        const nextX = startX;
+        const nextY = 335;
+        const nextWidth = (boxWidth * 4) + (spacing * 3);
+        const nextHeight = 85;
 
-        // Special box background
-        for (let y = specialY; y < specialY + specialHeight; y++) {
-            for (let x = specialX; x < specialX + specialWidth; x++) {
-                image.setPixelColor(Jimp.rgbaToInt(80, 60, 120, 180), x, y);
+        // Next section background (purple gradient)
+        for (let y = nextY; y < nextY + nextHeight; y++) {
+            for (let x = nextX; x < nextX + nextWidth; x++) {
+                const yRatio = (y - nextY) / nextHeight;
+                image.setPixelColor(Jimp.rgbaToInt(
+                    Math.round(100 - yRatio * 20),
+                    Math.round(60 - yRatio * 10),
+                    Math.round(140 - yRatio * 20),
+                    220
+                ), x, y);
             }
         }
 
-        // Special label
-        image.print(fontSmall, specialX + 10, specialY + 10, 'Special Achievements');
+        // Next section header
+        image.print(fontSmall, nextX + 10, nextY + 8, '🎯 NEXT ACHIEVEMENTS TO UNLOCK');
 
-        // Special achievements list
-        const specialAchs = achievements.filter(a => a.category === 'special');
-        const specialText = specialAchs.map(a => a.unlocked ? `✓ ${a.name.replace(/[^\w\s]/g, '')}` : `○ ${a.name.replace(/[^\w\s]/g, '')}`).join('  |  ');
-        image.print(fontSmall, specialX + 10, specialY + 40, specialText.substring(0, 80));
+        // Get next achievements (first unlocked in each category)
+        const nextAchievements = [];
+        for (const cat of categories) {
+            const catAchs = mainAchievements.filter(a => a.category === cat.key && !a.unlocked);
+            if (catAchs.length > 0) {
+                const next = catAchs.sort((a, b) => (a.tier || 0) - (b.tier || 0))[0];
+                nextAchievements.push({ ...next, catName: cat.name });
+            }
+        }
 
-        // Footer with stats
-        image.print(fontSmall, 30, 430, `Total XP from Achievements: ${stats.totalXP || 0}`);
-        image.print(fontSmall, 30, 455, `Rarest Achievement: ${stats.rarest || 'None yet'}`);
+        // Display next achievements
+        let nextOffset = nextX + 10;
+        const nextRow1Y = nextY + 35;
+        const nextRow2Y = nextY + 55;
 
-        // Timestamp
+        for (let i = 0; i < Math.min(nextAchievements.length, 4); i++) {
+            const next = nextAchievements[i];
+            const achName = next.name.replace(/[^\w\s']/g, '').trim();
+            const progressText = `${next.progress}/${next.max}`;
+
+            // Achievement box
+            const achBoxWidth = 210;
+
+            image.print(fontSmall, nextOffset, nextRow1Y, `${achName}`);
+            image.print(fontSmall, nextOffset, nextRow2Y, `Progress: ${progressText}`);
+
+            nextOffset += achBoxWidth + spacing;
+        }
+
+        if (nextAchievements.length === 0) {
+            image.print(fontSmall, nextX + 10, nextRow1Y, 'All achievements unlocked! Congratulations!');
+        }
+
+        // Footer stats
+        const footerY = 435;
+
+        // Stats boxes
+        const statBoxWidth = 280;
+        const statBoxHeight = 50;
+
+        // XP Box
+        for (let y = footerY; y < footerY + statBoxHeight; y++) {
+            for (let x = startX; x < startX + statBoxWidth; x++) {
+                image.setPixelColor(Jimp.rgbaToInt(40, 35, 60, 200), x, y);
+            }
+        }
+        image.print(fontSmall, startX + 10, footerY + 8, '💰 XP FROM ACHIEVEMENTS');
+        image.print(fontMedium, startX + 10, footerY + 25, `${stats.totalXP || 0} XP`);
+
+        // Rarest Box
+        for (let y = footerY; y < footerY + statBoxHeight; y++) {
+            for (let x = startX + statBoxWidth + spacing; x < startX + (statBoxWidth * 2) + spacing; x++) {
+                image.setPixelColor(Jimp.rgbaToInt(60, 35, 50, 200), x, y);
+            }
+        }
+        image.print(fontSmall, startX + statBoxWidth + spacing + 10, footerY + 8, '👑 HIGHEST ACHIEVEMENT');
+        const rarestText = (stats.rarest || 'None yet').substring(0, 15);
+        image.print(fontMedium, startX + statBoxWidth + spacing + 10, footerY + 25, rarestText);
+
+        // Date Box
+        for (let y = footerY; y < footerY + statBoxHeight; y++) {
+            for (let x = startX + (statBoxWidth * 2) + (spacing * 2); x < startX + (statBoxWidth * 3) + (spacing * 2); x++) {
+                image.setPixelColor(Jimp.rgbaToInt(35, 50, 60, 200), x, y);
+            }
+        }
         const date = new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
-        image.print(fontSmall, width - 150, 455, date);
+        image.print(fontSmall, startX + (statBoxWidth * 2) + (spacing * 2) + 10, footerY + 8, '📅 GENERATED');
+        image.print(fontMedium, startX + (statBoxWidth * 2) + (spacing * 2) + 10, footerY + 25, date);
 
         const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
         return new AttachmentBuilder(buffer, { name: 'achievements.png' });
@@ -362,3 +413,4 @@ async function createAchievementCard(user, achievements, stats) {
 }
 
 module.exports = { createWelcomeImage, createLeaveImage, createInviteImage, createAchievementCard };
+
