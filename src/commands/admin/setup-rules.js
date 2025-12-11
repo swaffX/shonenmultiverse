@@ -25,55 +25,80 @@ module.exports = {
 
         try {
             const bannerUrl = interaction.options.getString('banner_url');
-            const { roles } = config.server;
 
-            // Single Consolidated Rules Embed
             const rulesEmbed = new EmbedBuilder()
-                .setColor(config.colors.primary)
-                .setTitle(`📜 Shonen Multiverse - Server Rules`)
-                .setDescription('By being in this server, you agree to follow the rules below.')
+                .setColor('#2B2D31')
+                .setAuthor({
+                    name: 'SHONEN MULTIVERSE',
+                    iconURL: interaction.guild.iconURL({ dynamic: true })
+                })
+                .setTitle('📜 Server Rules')
+                .setDescription(
+                    `> By being in this server, you agree to follow all rules below.\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+                )
                 .addFields(
                     {
-                        name: '📋 General Rules',
+                        name: '📋 General Conduct',
                         value: [
-                            '```',
-                            '1. Be Respectful - No hate speech, harassment, or discrimination.',
-                            '',
-                            '2. No Spam - Avoid repetitive messages or caps.',
-                            '',
-                            '3. No NSFW Content - Zero tolerance policy.',
-                            '',
-                            '4. No Advertising - DMs or channels.',
-                            '',
-                            '5. Respect Staff - Follow moderator decisions.',
-                            '```'
+                            '> **1.** Be respectful to all members',
+                            '> **2.** No hate speech, harassment, or discrimination',
+                            '> **3.** No spam or excessive caps',
+                            '> **4.** No NSFW content (zero tolerance)',
+                            '> **5.** No advertising without permission'
                         ].join('\n'),
                         inline: false
                     },
                     {
-                        name: '🎙️ Voice Rules',
-                        value: '```\n• No mic spam\n• No voice changers\n• Respect others\n```',
+                        name: '🎙️ Voice Chat',
+                        value: [
+                            '```',
+                            '• No mic spam or loud noises',
+                            '• No voice changers without permission',
+                            '• Respect ongoing conversations',
+                            '• Keep background noise minimal',
+                            '```'
+                        ].join('\n'),
                         inline: true
                     },
                     {
-                        name: '⚠️ Punishments',
-                        value: '```\n• Warn\n• Mute\n• Kick\n• Ban\n```',
+                        name: '⚔️ Gaming',
+                        value: [
+                            '```',
+                            '• No cheating or exploiting',
+                            '• Be a good sport',
+                            '• Report bugs, dont abuse them',
+                            '• Help new players',
+                            '```'
+                        ].join('\n'),
                         inline: true
+                    },
+                    {
+                        name: '⚠️ Consequences',
+                        value: [
+                            '> **Tier 1:** Verbal Warning',
+                            '> **Tier 2:** Temporary Mute',
+                            '> **Tier 3:** Temporary Ban',
+                            '> **Tier 4:** Permanent Ban'
+                        ].join('\n'),
+                        inline: false
                     },
                     {
                         name: '📜 Terms of Service',
-                        value: '> Follow [Discord TOS](https://discord.com/terms) & [Roblox TOS](https://en.help.roblox.com/hc/en-us/articles/115004647846)',
+                        value: '> 🔗 [Discord ToS](https://discord.com/terms) • [Roblox ToS](https://en.help.roblox.com/hc/en-us/articles/115004647846)',
                         inline: false
                     }
                 )
-                .setFooter({ text: 'Shonen Multiverse • Last Updated' })
+                .setFooter({
+                    text: '⚖️ Staff decisions are final • Last updated',
+                    iconURL: interaction.guild.iconURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             if (bannerUrl) {
                 rulesEmbed.setImage(bannerUrl);
             }
 
-            // Send the single embed
             await interaction.channel.send({ embeds: [rulesEmbed] });
 
             await interaction.editReply({

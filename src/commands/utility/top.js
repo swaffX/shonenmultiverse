@@ -5,25 +5,25 @@ const Invite = require('../../models/Invite');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('top')
-        .setDescription('Lider tablolarını görüntüle')
+        .setDescription('View server leaderboards')
         .addSubcommand(sub =>
             sub.setName('messages')
-                .setDescription('En çok mesaj gönderenler'))
+                .setDescription('Top message senders'))
         .addSubcommand(sub =>
             sub.setName('voice')
-                .setDescription('En uzun süre sesli kanalda kalanlar'))
+                .setDescription('Top voice time'))
         .addSubcommand(sub =>
             sub.setName('weekly')
-                .setDescription('Bu haftanın en aktif üyeleri'))
+                .setDescription('This week\'s most active members'))
         .addSubcommand(sub =>
             sub.setName('monthly')
-                .setDescription('Bu ayın en aktif üyeleri'))
+                .setDescription('This month\'s most active members'))
         .addSubcommand(sub =>
             sub.setName('invites')
-                .setDescription('En çok davet edenler'))
+                .setDescription('Top inviters'))
         .addSubcommand(sub =>
             sub.setName('level')
-                .setDescription('En yüksek levelli üyeler')),
+                .setDescription('Highest level members')),
 
     async execute(interaction) {
         await interaction.deferReply();
@@ -57,7 +57,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Top command error:', error);
-            await interaction.editReply({ content: '❌ Lider tablosu yüklenemedi.' });
+            await interaction.editReply({ content: '❌ Failed to load leaderboard.' });
         }
     }
 };
@@ -67,10 +67,16 @@ async function getMessagesLeaderboard(guild) {
         .sort({ totalMessages: -1 })
         .limit(10);
 
-    return createLeaderboardEmbed(
-        '💬 En Çok Mesaj Gönderenler',
+    return createModernLeaderboard(
+        guild,
+        '💬',
+        'Message Leaders',
+        'Most messages sent all-time',
         users,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — \`${u.totalMessages.toLocaleString()}\` mesaj`,
+        (u, i) => {
+            const medal = getMedal(i);
+            return `${medal} <@${u.oderId}>\n> 📝 **${u.totalMessages.toLocaleString()}** messages`;
+        },
         '#3498DB'
     );
 }
@@ -80,10 +86,16 @@ async function getVoiceLeaderboard(guild) {
         .sort({ totalVoiceTime: -1 })
         .limit(10);
 
-    return createLeaderboardEmbed(
-        '🎤 En Uzun Süre Seste Kalanlar',
+    return createModernLeaderboard(
+        guild,
+        '🎤',
+        'Voice Champions',
+        'Most time spent in voice channels',
         users,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — \`${formatTime(u.totalVoiceTime)}\``,
+        (u, i) => {
+            const medal = getMedal(i);
+            return `${medal} <@${u.oderId}>\n> ⏱️ **${formatTime(u.totalVoiceTime)}** in voice`;
+        },
         '#9B59B6'
     );
 }
@@ -93,10 +105,17 @@ async function getWeeklyLeaderboard(guild) {
         .sort({ weeklyMessages: -1 })
         .limit(10);
 
-    return createLeaderboardEmbed(
-        '📅 Bu Haftanın En Aktif Üyeleri',
+    return createModernLeaderboard(
+        guild,
+        '📅',
+        'Weekly Champions',
+        'Most active members this week',
         users,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — \`${u.weeklyMessages}\` mesaj, \`${formatTime(u.weeklyVoiceTime || 0)}\` ses`,
+        (u, i) => {
+            const medal = getMedal(i);
+            const voiceTime = formatTime(u.weeklyVoiceTime || 0);
+            return `${medal} <@${u.oderId}>\n> 📝 **${u.weeklyMessages}** msgs • 🎤 **${voiceTime}**`;
+        },
         '#E67E22'
     );
 }
@@ -106,10 +125,16 @@ async function getMonthlyLeaderboard(guild) {
         .sort({ monthlyMessages: -1 })
         .limit(10);
 
-    return createLeaderboardEmbed(
-        '📆 Bu Ayın En Aktif Üyeleri',
+    return createModernLeaderboard(
+        guild,
+        '📆',
+        'Monthly Champions',
+        'Most active members this month',
         users,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — \`${u.monthlyMessages || 0}\` mesaj`,
+        (u, i) => {
+            const medal = getMedal(i);
+            return `${medal} <@${u.oderId}>\n> 📝 **${u.monthlyMessages || 0}** messages`;
+        },
         '#1ABC9C'
     );
 }
@@ -117,10 +142,16 @@ async function getMonthlyLeaderboard(guild) {
 async function getInvitesLeaderboard(guild) {
     const invites = await Invite.getTopInviters(guild.id, 10);
 
-    return createLeaderboardEmbed(
-        '📨 En Çok Davet Edenler',
+    return createModernLeaderboard(
+        guild,
+        '📨',
+        'Top Recruiters',
+        'Members who brought the most people',
         invites,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — \`${u.validInvites}\` davet`,
+        (u, i) => {
+            const medal = getMedal(i);
+            return `${medal} <@${u.oderId}>\n> 👥 **${u.validInvites}** invites`;
+        },
         '#2ECC71'
     );
 }
@@ -130,33 +161,58 @@ async function getLevelLeaderboard(guild) {
         .sort({ xp: -1 })
         .limit(10);
 
-    return createLeaderboardEmbed(
-        '⭐ En Yüksek Level',
+    return createModernLeaderboard(
+        guild,
+        '⭐',
+        'Level Kings',
+        'Highest level members in the server',
         users,
-        (u, i) => `**${i + 1}.** <@${u.oderId}> — Level \`${u.level}\` (\`${Math.floor(u.xp).toLocaleString()}\` XP)`,
+        (u, i) => {
+            const medal = getMedal(i);
+            return `${medal} <@${u.oderId}>\n> 🎖️ **Level ${u.level}** • ✨ **${Math.floor(u.xp).toLocaleString()}** XP`;
+        },
         '#F1C40F'
     );
 }
 
-function createLeaderboardEmbed(title, data, formatter, color) {
-    const description = data.length > 0
-        ? data.map((item, index) => formatter(item, index)).join('\n')
-        : '*Henüz veri yok.*';
+function getMedal(index) {
+    if (index === 0) return '👑';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return `\`#${index + 1}\``;
+}
+
+function createModernLeaderboard(guild, emoji, title, subtitle, data, formatter, color) {
+    const lines = data.length > 0
+        ? data.map((item, index) => formatter(item, index)).join('\n\n')
+        : '> *No data yet. Be the first!*';
 
     return new EmbedBuilder()
         .setColor(color)
-        .setTitle(`🏆 ${title}`)
-        .setDescription(description)
-        .setFooter({ text: 'Shonen Multiverse Leaderboard' })
+        .setAuthor({
+            name: 'SHONEN MULTIVERSE',
+            iconURL: guild.iconURL({ dynamic: true })
+        })
+        .setTitle(`${emoji} ${title}`)
+        .setDescription(
+            `> ${subtitle}\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+            lines
+        )
+        .setThumbnail(guild.iconURL({ dynamic: true, size: 512 }))
+        .setFooter({
+            text: `🏆 ${guild.name} Leaderboard`,
+            iconURL: guild.iconURL({ dynamic: true })
+        })
         .setTimestamp();
 }
 
 function formatTime(minutes) {
-    if (!minutes) return '0dk';
+    if (!minutes) return '0m';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0) {
-        return `${hours}s ${mins}dk`;
+        return `${hours}h ${mins}m`;
     }
-    return `${mins}dk`;
+    return `${mins}m`;
 }

@@ -6,55 +6,13 @@ const ReactionRole = require('../../models/ReactionRole');
 
 // Ping roles configuration
 const PING_ROLES = [
-    {
-        name: 'Announcements',
-        description: 'Get pinged when news related to the game are posted.',
-        emoji: '📢',
-        roleId: null, // Will be set dynamically
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Updates',
-        description: 'Get pinged when updates for the game are posted.',
-        emoji: '📋',
-        roleId: null,
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Sneak Peeks',
-        description: 'Get pinged when sneaks for the game are posted.',
-        emoji: '👀',
-        roleId: null,
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Polls',
-        description: 'Get pinged when game-related polls are made.',
-        emoji: '📊',
-        roleId: null,
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Giveaways',
-        description: 'Get pinged when a giveaway is hosted on the server.',
-        emoji: '🎉',
-        roleId: null,
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Server News',
-        description: 'Get pinged when news related to the server are announced.',
-        emoji: '📰',
-        roleId: null,
-        style: ButtonStyle.Primary
-    },
-    {
-        name: 'Event',
-        description: 'Get notified when events are hosted on the server.',
-        emoji: '🎮',
-        roleId: null,
-        style: ButtonStyle.Primary
-    }
+    { name: 'Announcements', emoji: '📢', description: 'Game news and announcements' },
+    { name: 'Updates', emoji: '📋', description: 'Game updates and patches' },
+    { name: 'Sneak Peeks', emoji: '👀', description: 'Exclusive previews' },
+    { name: 'Polls', emoji: '📊', description: 'Community polls' },
+    { name: 'Giveaways', emoji: '🎉', description: 'Giveaway notifications' },
+    { name: 'Server News', emoji: '📰', description: 'Server announcements' },
+    { name: 'Event', emoji: '🎮', description: 'Event notifications' }
 ];
 
 module.exports = {
@@ -108,7 +66,6 @@ module.exports = {
         try {
             const bannerUrl = interaction.options.getString('banner_url');
 
-            // Get role IDs from options
             const roleMapping = {
                 announcements: interaction.options.getRole('announcements').id,
                 updates: interaction.options.getRole('updates').id,
@@ -119,26 +76,36 @@ module.exports = {
                 event: interaction.options.getRole('event').id
             };
 
-            // Create the embed
             const rolesEmbed = new EmbedBuilder()
-                .setColor(config.colors.info)
-                .setTitle('🎭 Reaction Roles')
-                .setDescription([
-                    '**Get notified for what matters to you!**',
-                    '',
-                    'Click the buttons below to toggle your notification preferences.',
-                    '',
-                    '```',
-                    '📢 Announcements - Game news and announcements',
-                    '📋 Updates      - Game updates and patches',
-                    '👀 Sneak Peeks  - Exclusive previews',
-                    '📊 Polls        - Community polls',
-                    '🎉 Giveaways    - Giveaway notifications',
-                    '📰 Server News  - Server announcements',
-                    '🎮 Event        - Event notifications',
-                    '```'
-                ].join('\n'))
-                .setFooter({ text: 'Shonen Multiverse • Click a button to toggle!' })
+                .setColor('#2B2D31')
+                .setAuthor({
+                    name: 'SHONEN MULTIVERSE',
+                    iconURL: interaction.guild.iconURL({ dynamic: true })
+                })
+                .setTitle('🎭 Notification Roles')
+                .setDescription(
+                    `> Customize your notification preferences!\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                    `**🔔 Available Notifications**\n\n` +
+                    `> 📢 **Announcements** - Game news\n` +
+                    `> 📋 **Updates** - Patches & updates\n` +
+                    `> 👀 **Sneak Peeks** - Exclusive previews\n` +
+                    `> 📊 **Polls** - Community polls\n` +
+                    `> 🎉 **Giveaways** - Free rewards\n` +
+                    `> 📰 **Server News** - Server updates\n` +
+                    `> 🎮 **Events** - Special events\n\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+                )
+                .addFields({
+                    name: '💡 How to Use',
+                    value: '> Click a button to **toggle** the role.\n> Click again to **remove** it.',
+                    inline: false
+                })
+                .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 512 }))
+                .setFooter({
+                    text: '🔔 Stay updated with what matters to you!',
+                    iconURL: interaction.guild.iconURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             if (bannerUrl) {
@@ -151,22 +118,22 @@ module.exports = {
                     .setCustomId(`role_${roleMapping.announcements}`)
                     .setLabel('Announcements')
                     .setEmoji('📢')
-                    .setStyle(ButtonStyle.Secondary),
+                    .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
                     .setCustomId(`role_${roleMapping.updates}`)
                     .setLabel('Updates')
                     .setEmoji('📋')
-                    .setStyle(ButtonStyle.Secondary),
+                    .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
                     .setCustomId(`role_${roleMapping.sneak_peeks}`)
                     .setLabel('Sneak Peeks')
                     .setEmoji('👀')
-                    .setStyle(ButtonStyle.Secondary),
+                    .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
                     .setCustomId(`role_${roleMapping.polls}`)
                     .setLabel('Polls')
                     .setEmoji('📊')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle(ButtonStyle.Primary)
             );
 
             const row2 = new ActionRowBuilder().addComponents(
@@ -174,7 +141,7 @@ module.exports = {
                     .setCustomId(`role_${roleMapping.giveaways}`)
                     .setLabel('Giveaways')
                     .setEmoji('🎉')
-                    .setStyle(ButtonStyle.Secondary),
+                    .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
                     .setCustomId(`role_${roleMapping.server_news}`)
                     .setLabel('Server News')
@@ -182,18 +149,16 @@ module.exports = {
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`role_${roleMapping.event}`)
-                    .setLabel('Event')
+                    .setLabel('Events')
                     .setEmoji('🎮')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle(ButtonStyle.Danger)
             );
 
-            // Send the message
             const message = await interaction.channel.send({
                 embeds: [rolesEmbed],
                 components: [row1, row2]
             });
 
-            // Save to database for persistence
             await ReactionRole.findOneAndUpdate(
                 { guildId: interaction.guild.id, roleType: 'button' },
                 {
