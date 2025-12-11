@@ -4,6 +4,7 @@ const { checkBotAddition } = require('../systems/protectionSystem');
 const { logMemberJoin } = require('../systems/loggingSystem');
 const { handleMemberJoin: handleInviteJoin } = require('../systems/inviteSystem');
 const { createWelcomeImage } = require('../systems/welcomeImageSystem');
+const { triggerStatsUpdate } = require('../systems/serverStatsSystem');
 const config = require('../config/config');
 
 // Hardcoded channel ID - no setup required
@@ -33,6 +34,9 @@ module.exports = {
         if (config.antiRaid?.enabled) {
             await checkRaid(member, client);
         }
+
+        // Update stats channels
+        await triggerStatsUpdate(member.guild);
 
         // Send welcome message
         await sendWelcomeMessage(member);

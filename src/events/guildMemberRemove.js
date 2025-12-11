@@ -3,6 +3,7 @@ const { logMemberLeave } = require('../systems/loggingSystem');
 const { deleteUserData } = require('../systems/statsEmbedSystem');
 const { handleMemberLeave: handleInviteLeave } = require('../systems/inviteSystem');
 const { createLeaveImage } = require('../systems/welcomeImageSystem');
+const { triggerStatsUpdate } = require('../systems/serverStatsSystem');
 
 // Hardcoded channel ID - no setup required
 const LEAVE_CHANNEL_ID = '1448030623108305081';
@@ -22,6 +23,9 @@ module.exports = {
 
         // Skip bots
         if (member.user.bot) return;
+
+        // Update stats channels
+        await triggerStatsUpdate(member.guild);
 
         // Send goodbye message - ONLY ONE MESSAGE
         await sendGoodbyeMessage(member);

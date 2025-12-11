@@ -149,38 +149,32 @@ async function deleteStatsChannels(guild, channelIds) {
 }
 
 /**
- * Stats sistemini başlat
+ * Stats sistemini başlat - REMOVED duplicate event listeners
+ * Stats updates are now triggered from event files to avoid duplicates
  */
-function initServerStats(client, updateInterval = 300000) { // Varsayılan 5 dakika
+function initServerStats(client, updateInterval = 300000) {
     // Periyodik güncelleme
     setInterval(async () => {
         for (const [guildId, channelIds] of statsChannels) {
             const guild = client.guilds.cache.get(guildId);
             if (guild) {
-                // Önce member cache'i güncelle
                 await guild.members.fetch().catch(() => { });
                 await updateStatsChannels(guild, channelIds);
             }
         }
     }, updateInterval);
 
-    // Member join/leave eventlerinde güncelle
-    client.on('guildMemberAdd', async (member) => {
-        const channelIds = statsChannels.get(member.guild.id);
-        if (channelIds) {
-            // Biraz bekle (rate limit için)
-            setTimeout(() => updateStatsChannels(member.guild, channelIds), 5000);
-        }
-    });
-
-    client.on('guildMemberRemove', async (member) => {
-        const channelIds = statsChannels.get(member.guild.id);
-        if (channelIds) {
-            setTimeout(() => updateStatsChannels(member.guild, channelIds), 5000);
-        }
-    });
-
     console.log('📊 Server Stats system initialized');
+}
+
+/**
+ * Trigger stats update on member join/leave - called from event files
+ */
+async function triggerStatsUpdate(guild) {
+    const channelIds = statsChannels.get(guild.id);
+    if (channelIds) {
+        setTimeout(() => updateStatsChannels(guild, channelIds), 5000);
+    }
 }
 
 /**
@@ -216,6 +210,7 @@ module.exports = {
     deleteStatsChannels,
     updateStatsChannels,
     forceUpdateStats,
+    triggerStatsUpdate,
     getServerStats,
     loadStatsChannels,
     getStatsChannelIds,
