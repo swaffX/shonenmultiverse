@@ -2,6 +2,7 @@ const { Events, EmbedBuilder } = require('discord.js');
 const { checkRaid } = require('../handlers/antiRaidHandler');
 const { checkBotAddition } = require('../systems/protectionSystem');
 const { logMemberJoin } = require('../systems/loggingSystem');
+const { handleMemberJoin: handleInviteJoin } = require('../systems/inviteSystem');
 const Guild = require('../models/Guild');
 const { createWelcomeImage } = require('../systems/welcomeImageSystem');
 
@@ -12,6 +13,8 @@ module.exports = {
         // Log member join
         await logMemberJoin(member).catch(console.error);
 
+        // Track invites
+        await handleInviteJoin(member).catch(console.error);
         // Check for bot additions
         if (member.user.bot) {
             await checkBotAddition(member, client);

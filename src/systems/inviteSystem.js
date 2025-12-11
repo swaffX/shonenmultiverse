@@ -1,0 +1,205 @@
+const { EmbedBuilder, Collection } = require('discord.js');
+const Invite = require('../models/Invite');
+
+// Cache for tracking invites
+const inviteCache = new Collection();
+
+// Invite notification channel
+const INVITE_CHANNEL_ID = '1448580403970572380';
+
+// Milestones for rewards
+const INVITE_MILESTONES = [5, 10, 25, 50, 100];
+
+/**
+ * Initialize invite tracking
+ */
+async function initInviteSystem(client) {
+    console.log('📨 Initializing invite tracking...');
+
+    // Cache all guild invites
+    for (const [, guild] of client.guilds.cache) {
+        try {
+            const invites = await guild.invites.fetch();
+            inviteCache.set(guild.id, new Collection(invites.map(inv => [inv.code, inv.uses])));
+        } catch (err) {
+            console.error(`Failed to cache invites for ${guild.name}:`, err);
+        }
+    }
+
+    console.log('📨 Invite tracking initialized!');
+}
+
+/**
+ * Handle member join - track who invited them
+ */
+async function handleMemberJoin(member) {
+    if (member.user.bot) return;
+
+    try {
+        const guild = member.guild;
+        const cachedInvites = inviteCache.get(guild.id) || new Collection();
+        const newInvites = await guild.invites.fetch();
+
+        // Find which invite was used
+        const usedInvite = newInvites.find(inv => {
+            const oldUses = cachedInvites.get(inv.code) || 0;
+            return inv.uses > oldUses;
+        });
+
+        // Update cache
+        inviteCache.set(guild.id, new Collection(newInvites.map(inv => [inv.code, inv.uses])));
+
+        if (!usedInvite || !usedInvite.inviter) return;
+
+        const oderster = usedInvite.inviter;
+
+        // Check if fake invite (account less than 7 days old)
+        const accountAge = Date.now() - member.user.createdTimestamp;
+        const isFake = accountAge < 7 * 24 * 60 * 60 * 1000; // 7 days
+
+        // Update database
+        const inviteData = await Invite.findOrCreate(oderster.id, guild.id);
+
+        inviteData.invitedUsers.push({
+            userId: member.id,
+            username: member.user.username,
+            joinedAt: new Date(),
+            isValid: !isFake
+        });
+
+        inviteData.totalInvites += 1;
+        if (isFake) {
+            inviteData.fakeInvites += 1;
+        } else {
+            inviteData.validInvites += 1;
+        }
+
+        await inviteData.save();
+
+        // Send notification
+        await sendInviteNotification(guild, member, oderster, inviteData, isFake);
+
+        // Check milestones
+        await checkMilestone(guild, oderster, inviteData);
+
+    } catch (error) {
+        console.error('Invite tracking error:', error);
+    }
+}
+
+/**
+ * Handle member leave - update invite validity
+ */
+async function handleMemberLeave(member) {
+    if (member.user.bot) return;
+
+    try {
+        // Find who invited this person
+        const inviteData = await Invite.findOne({
+            guildId: member.guild.id,
+            'invitedUsers.userId': member.id
+        });
+
+        if (!inviteData) return;
+
+        // Mark as invalid
+        const invitedUser = inviteData.invitedUsers.find(u => u.userId === member.id);
+        if (invitedUser && invitedUser.isValid) {
+            invitedUser.isValid = false;
+            inviteData.validInvites = Math.max(0, inviteData.validInvites - 1);
+            inviteData.leftInvites += 1;
+            await inviteData.save();
+        }
+    } catch (error) {
+        console.error('Invite leave tracking error:', error);
+    }
+}
+
+/**
+ * Send invite notification to channel
+ */
+async function sendInviteNotification(guild, member, oderster, inviteData, isFake) {
+    const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
+    if (!channel) return;
+
+    const embed = new EmbedBuilder()
+        .setColor(isFake ? '#FFA500' : '#00D166')
+        .setAuthor({
+            name: '📨 Yeni Davet',
+            iconURL: member.user.displayAvatarURL({ dynamic: true })
+        })
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 128 }))
+        .setDescription([
+            `**${member.user.username}** sunucuya katıldı!`,
+            '',
+            `👤 **Davet Eden:** <@${oderster.id}>`,
+            `📊 **Toplam Davet:** \`${inviteData.validInvites}\` (\`+${inviteData.leftInvites}\` ayrıldı)`,
+            isFake ? '\n⚠️ *Hesap 7 günden yeni, geçersiz sayıldı.*' : ''
+        ].join('\n'))
+        .setFooter({ text: `Kullanıcı ID: ${member.id}` })
+        .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+}
+
+/**
+ * Check for milestone rewards
+ */
+async function checkMilestone(guild, oderster, inviteData) {
+    const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
+
+    for (const milestone of INVITE_MILESTONES) {
+        if (inviteData.validInvites >= milestone) {
+            const alreadyClaimed = inviteData.rewardsClaimed.some(r => r.milestone === milestone);
+            if (!alreadyClaimed) {
+                // Record milestone
+                inviteData.rewardsClaimed.push({ milestone, claimedAt: new Date() });
+                await inviteData.save();
+
+                // Send celebration
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setColor('#FFD700')
+                        .setTitle('🎉 DAVET MİLESTONE!')
+                        .setDescription([
+                            `<@${oderster.id}> **${milestone}** davete ulaştı!`,
+                            '',
+                            '🏆 Tebrikler! Özel ödüller için yetkililerle iletişime geç.'
+                        ].join('\n'))
+                        .setTimestamp();
+
+                    await channel.send({ embeds: [embed] });
+                }
+                break; // Only announce one milestone at a time
+            }
+        }
+    }
+}
+
+/**
+ * Update invite cache when a new invite is created
+ */
+async function handleInviteCreate(invite) {
+    const cachedInvites = inviteCache.get(invite.guild.id) || new Collection();
+    cachedInvites.set(invite.code, invite.uses);
+    inviteCache.set(invite.guild.id, cachedInvites);
+}
+
+/**
+ * Update invite cache when an invite is deleted
+ */
+async function handleInviteDelete(invite) {
+    const cachedInvites = inviteCache.get(invite.guild.id);
+    if (cachedInvites) {
+        cachedInvites.delete(invite.code);
+    }
+}
+
+module.exports = {
+    initInviteSystem,
+    handleMemberJoin,
+    handleMemberLeave,
+    handleInviteCreate,
+    handleInviteDelete,
+    INVITE_MILESTONES
+};
