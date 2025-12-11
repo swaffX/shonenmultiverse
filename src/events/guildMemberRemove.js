@@ -20,15 +20,15 @@ module.exports = {
         // Delete user level/stats data
         await deleteUserData(member.id, member.guild.id).catch(console.error);
 
-        // Skip bots for goodbye message
+        // Skip bots
         if (member.user.bot) return;
 
-        // Send goodbye message (no setup required)
-        await sendGoodbyeMessage(member, client);
+        // Send goodbye message - ONLY ONE MESSAGE
+        await sendGoodbyeMessage(member);
     }
 };
 
-async function sendGoodbyeMessage(member, client) {
+async function sendGoodbyeMessage(member) {
     try {
         const channel = member.guild.channels.cache.get(LEAVE_CHANNEL_ID);
         if (!channel) {
@@ -38,8 +38,8 @@ async function sendGoodbyeMessage(member, client) {
 
         const memberCount = member.guild.memberCount;
 
-        // Simple modern embed - no fields, clean design
-        const goodbyeEmbed = new EmbedBuilder()
+        // Simple embed - no fields
+        const embed = new EmbedBuilder()
             .setColor('#ED4245')
             .setAuthor({
                 name: '👋 Member Left',
@@ -54,18 +54,18 @@ async function sendGoodbyeMessage(member, client) {
             })
             .setTimestamp();
 
-        // Generate custom leave image
+        // Generate image
         const attachment = await createLeaveImage(member);
 
         if (attachment) {
-            goodbyeEmbed.setImage('attachment://goodbye.png');
-            await channel.send({ embeds: [goodbyeEmbed], files: [attachment] });
+            embed.setImage('attachment://goodbye.png');
+            await channel.send({ embeds: [embed], files: [attachment] });
         } else {
-            await channel.send({ embeds: [goodbyeEmbed] });
+            await channel.send({ embeds: [embed] });
         }
 
-        console.log(`👋 Goodbye message sent for ${member.user.tag} in ${member.guild.name}`);
+        console.log(`✅ Goodbye sent for ${member.user.tag}`);
     } catch (error) {
-        console.error('Goodbye message error:', error);
+        console.error('Goodbye error:', error);
     }
 }

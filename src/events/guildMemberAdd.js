@@ -16,7 +16,7 @@ module.exports = {
         // Log member join
         await logMemberJoin(member).catch(console.error);
 
-        // Track invites
+        // Track invites (this sends to invites channel)
         await handleInviteJoin(member).catch(console.error);
 
         // Check for bot additions
@@ -34,12 +34,12 @@ module.exports = {
             await checkRaid(member, client);
         }
 
-        // Send welcome message (no setup required)
-        await sendWelcomeMessage(member, client);
+        // Send welcome message
+        await sendWelcomeMessage(member);
     }
 };
 
-async function sendWelcomeMessage(member, client) {
+async function sendWelcomeMessage(member) {
     try {
         const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
         if (!channel) {
@@ -49,8 +49,8 @@ async function sendWelcomeMessage(member, client) {
 
         const memberCount = member.guild.memberCount;
 
-        // Simple modern embed - no fields, clean design
-        const welcomeEmbed = new EmbedBuilder()
+        // Simple embed - no fields
+        const embed = new EmbedBuilder()
             .setColor('#5865F2')
             .setAuthor({
                 name: '✨ New Member Joined!',
@@ -65,18 +65,18 @@ async function sendWelcomeMessage(member, client) {
             })
             .setTimestamp();
 
-        // Generate custom welcome image
+        // Generate image
         const attachment = await createWelcomeImage(member);
 
         if (attachment) {
-            welcomeEmbed.setImage('attachment://welcome.png');
-            await channel.send({ embeds: [welcomeEmbed], files: [attachment] });
+            embed.setImage('attachment://welcome.png');
+            await channel.send({ embeds: [embed], files: [attachment] });
         } else {
-            await channel.send({ embeds: [welcomeEmbed] });
+            await channel.send({ embeds: [embed] });
         }
 
-        console.log(`👋 Welcome message sent for ${member.user.tag} in ${member.guild.name}`);
+        console.log(`✅ Welcome sent for ${member.user.tag}`);
     } catch (error) {
-        console.error('Welcome message error:', error);
+        console.error('Welcome error:', error);
     }
 }

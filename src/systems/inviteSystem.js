@@ -17,7 +17,6 @@ const INVITE_MILESTONES = [5, 10, 25, 50, 100];
 async function initInviteSystem(client) {
     console.log('📨 Initializing invite tracking...');
 
-    // Cache all guild invites
     for (const [, guild] of client.guilds.cache) {
         try {
             const invites = await guild.invites.fetch();
@@ -32,6 +31,7 @@ async function initInviteSystem(client) {
 
 /**
  * Handle member join - track who invited them
+ * ONLY sends to invite notification channel (not welcome channel)
  */
 async function handleMemberJoin(member) {
     if (member.user.bot) return;
@@ -56,7 +56,7 @@ async function handleMemberJoin(member) {
 
         // Check if fake invite (account less than 7 days old)
         const accountAge = Date.now() - member.user.createdTimestamp;
-        const isFake = accountAge < 7 * 24 * 60 * 60 * 1000; // 7 days
+        const isFake = accountAge < 7 * 24 * 60 * 60 * 1000;
 
         // Update database
         const inviteData = await Invite.findOrCreate(inviter.id, guild.id);
@@ -77,7 +77,7 @@ async function handleMemberJoin(member) {
 
         await inviteData.save();
 
-        // Send notification
+        // Send ONLY ONE notification to invite channel
         await sendInviteNotification(guild, member, inviter, inviteData, isFake);
 
         // Check milestones
@@ -95,7 +95,6 @@ async function handleMemberLeave(member) {
     if (member.user.bot) return;
 
     try {
-        // Find who invited this person
         const inviteData = await Invite.findOne({
             guildId: member.guild.id,
             'invitedUsers.userId': member.id
@@ -103,7 +102,6 @@ async function handleMemberLeave(member) {
 
         if (!inviteData) return;
 
-        // Mark as invalid
         const invitedUser = inviteData.invitedUsers.find(u => u.userId === member.id);
         if (invitedUser && invitedUser.isValid) {
             invitedUser.isValid = false;
@@ -117,60 +115,33 @@ async function handleMemberLeave(member) {
 }
 
 /**
- * Send invite notification to channel
+ * Send invite notification - ONLY ONE message with image
  */
 async function sendInviteNotification(guild, member, inviter, inviteData, isFake) {
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
     if (!channel) return;
 
-    // Generate invite image
-    const attachment = await createInviteImage(member.user, inviteData.validInvites);
+    // Generate image
+    const attachment = await createInviteImage(member.user);
 
+    // Simple embed - no fields
     const embed = new EmbedBuilder()
         .setColor(isFake ? '#F59E0B' : '#10B981')
         .setAuthor({
             name: '📨 New Invite',
             iconURL: guild.iconURL({ dynamic: true })
         })
+        .setTitle(`${member.user.username} joined the server!`)
+        .setDescription(`Invited by <@${inviter.id}>\n✅ Valid Invites: **${inviteData.validInvites}** | 📊 Total: **${inviteData.totalInvites}**${isFake ? '\n\n⚠️ *Suspicious: Account is less than 7 days old*' : ''}`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setImage('attachment://invite.png')
-        .setDescription([
-            `### ${member.user.username} joined the server!`,
-            ``
-        ].join('\n'))
-        .addFields(
-            {
-                name: '👤 Invited By',
-                value: `<@${inviter.id}>`,
-                inline: true
-            },
-            {
-                name: '✅ Valid Invites',
-                value: `\`${inviteData.validInvites}\``,
-                inline: true
-            },
-            {
-                name: '📊 Total Invites',
-                value: `\`${inviteData.totalInvites}\` (+${inviteData.leftInvites} left)`,
-                inline: true
-            }
-        )
         .setFooter({
             text: `Member ID: ${member.id}`,
-            iconURL: member.user.displayAvatarURL({ dynamic: true })
+            iconURL: inviter.displayAvatarURL({ dynamic: true })
         })
         .setTimestamp();
 
-    // Add warning for fake invites
-    if (isFake) {
-        embed.addFields({
-            name: '⚠️ Warning',
-            value: 'Account is less than 7 days old - marked as suspicious.',
-            inline: false
-        });
-    }
-
     if (attachment) {
+        embed.setImage('attachment://invite.png');
         await channel.send({ embeds: [embed], files: [attachment] });
     } else {
         await channel.send({ embeds: [embed] });
@@ -187,46 +158,30 @@ async function checkMilestone(guild, inviter, inviteData) {
         if (inviteData.validInvites >= milestone) {
             const alreadyClaimed = inviteData.rewardsClaimed.some(r => r.milestone === milestone);
             if (!alreadyClaimed) {
-                // Record milestone
                 inviteData.rewardsClaimed.push({ milestone, claimedAt: new Date() });
                 await inviteData.save();
 
-                // Send celebration
                 if (channel) {
                     const embed = new EmbedBuilder()
                         .setColor('#FFD700')
-                        .setTitle('🎉 INVITE MILESTONE REACHED!')
-                        .setThumbnail(inviter.displayAvatarURL({ dynamic: true, size: 256 }))
-                        .setDescription([
-                            `### Congratulations <@${inviter.id}>!`,
-                            ``,
-                            `You've reached **${milestone}** valid invites! 🏆`,
-                            ``,
-                            `Thank you for helping grow our community!`
-                        ].join('\n'))
-                        .setFooter({ text: 'Contact staff for special rewards!' })
+                        .setTitle('🎉 Invite Milestone Reached!')
+                        .setDescription(`Congratulations <@${inviter.id}>! You reached **${milestone}** valid invites! 🏆`)
                         .setTimestamp();
 
                     await channel.send({ embeds: [embed] });
                 }
-                break; // Only announce one milestone at a time
+                break;
             }
         }
     }
 }
 
-/**
- * Update invite cache when a new invite is created
- */
 async function handleInviteCreate(invite) {
     const cachedInvites = inviteCache.get(invite.guild.id) || new Collection();
     cachedInvites.set(invite.code, invite.uses);
     inviteCache.set(invite.guild.id, cachedInvites);
 }
 
-/**
- * Update invite cache when an invite is deleted
- */
 async function handleInviteDelete(invite) {
     const cachedInvites = inviteCache.get(invite.guild.id);
     if (cachedInvites) {
