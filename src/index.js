@@ -298,7 +298,7 @@ app.get('/', (req, res) => res.send(`
             <div class="feature"><span>🎮</span> Access exclusive in-game features</div>
         </div>
         
-        <a href="https://discord.gg/YourInviteCode" class="btn">Join Discord Server</a>
+        <a href="https://discord.gg/2xvmzeDy3Y" class="btn">Join Discord Server</a>
         
         <div class="steps">
             <h3 style="margin-bottom: 15px;">📋 How to Verify:</h3>
