@@ -17,6 +17,7 @@ const { initCustomVoiceSystem } = require('./systems/customVoiceSystem');
 const { initInviteSystem } = require('./systems/inviteSystem');
 const config = require('./config/config');
 const Guild = require('./models/Guild');
+const BotState = require('./models/BotState');
 
 // Create Discord client with all necessary intents
 const client = new Client({
@@ -43,6 +44,7 @@ const client = new Client({
 client.commands = new Collection();
 client.cooldowns = new Collection();
 client.giveaways = new Collection();
+client.maintenanceMode = false; // Initialize maintenance mode
 
 // Load configuration
 client.config = config;
@@ -77,18 +79,35 @@ async function init() {
 }
 
 // Ready event
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
     console.log(`✅ Logged in as ${client.user.tag}!`);
     console.log(`📊 Active in ${client.guilds.cache.size} server(s)`);
 
-    // Set bot status
-    client.user.setPresence({
-        activities: [{
-            name: 'Shonen Multiverse',
-            type: ActivityType.Playing
-        }],
-        status: 'online'
-    });
+    // Load Bot State (Maintenance Mode)
+    try {
+        let state = await BotState.findOne({ clientId: client.user.id });
+        if (!state) {
+            state = new BotState({ clientId: client.user.id });
+            await state.save();
+        }
+        client.maintenanceMode = state.maintenanceMode;
+        console.log(`🔧 Maintenance Mode: ${client.maintenanceMode ? 'ENABLED' : 'DISABLED'}`);
+    } catch (error) {
+        console.error('Failed to load bot state:', error);
+    }
+
+    // Set initial status
+    if (client.maintenanceMode) {
+        client.user.setPresence({
+            activities: [{ name: 'MAINTENANCE', type: ActivityType.Playing }],
+            status: 'dnd'
+        });
+    } else {
+        client.user.setPresence({
+            activities: [{ name: 'Shonen Multiverse', type: ActivityType.Playing }],
+            status: 'online'
+        });
+    }
 
     // Initialize giveaway timers
     initGiveaways(client);
@@ -129,6 +148,15 @@ client.once(Events.ClientReady, () => {
     // Rotate status every 30 seconds
     let statusIndex = 0;
     setInterval(() => {
+        // If maintenance mode is active, lock status to DND/MAINTENANCE
+        if (client.maintenanceMode) {
+            client.user.setPresence({
+                activities: [{ name: 'MAINTENANCE', type: ActivityType.Playing }],
+                status: 'dnd'
+            });
+            return;
+        }
+
         const statuses = config.statusMessages;
         if (statuses && statuses.length > 0) {
             const status = statuses[statusIndex % statuses.length];

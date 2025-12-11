@@ -22,6 +22,17 @@ module.exports = {
     once: false,
     async execute(interaction, client) {
         try {
+            // Maintenance Mode Check
+            if (client.maintenanceMode && !config.ownerIds.includes(interaction.user.id)) {
+                // Allow maintenance toggle command even in maintenance mode (handled by ownership check basically)
+                // But for safety, block everything else
+
+                return interaction.reply({
+                    content: '⛔ **MAINTENANCE MODE ACTIVE**\nThe bot is currently under maintenance. Please try again later.',
+                    ephemeral: true
+                });
+            }
+
             if (interaction.isChatInputCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) return;
