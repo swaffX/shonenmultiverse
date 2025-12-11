@@ -121,8 +121,9 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
     if (!channel) return;
 
-    // Generate image
-    const attachment = await createInviteImage(member.user);
+    // Generate image with inviter name
+    const inviterName = inviter.username || inviter.displayName || 'Unknown';
+    const attachment = await createInviteImage(member.user, inviterName);
 
     // Simple embed - no fields
     const embed = new EmbedBuilder()

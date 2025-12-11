@@ -120,8 +120,8 @@ module.exports = {
                 });
             }
 
-            // Generate invite image
-            const attachment = await createInviteImage(targetUser, validInvites);
+            // Generate invite image (no inviter name for stats)
+            const attachment = await createInviteImage(targetUser, '');
 
             if (attachment) {
                 embed.setImage('attachment://invite.png');

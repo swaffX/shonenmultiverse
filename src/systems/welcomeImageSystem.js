@@ -2,7 +2,7 @@ const Jimp = require('jimp');
 const { AttachmentBuilder } = require('discord.js');
 
 /**
- * Creates a modern welcome image - BRIGHTER gradient
+ * Creates a welcome image with WELCOME text and username
  */
 async function createWelcomeImage(member) {
     try {
@@ -10,7 +10,7 @@ async function createWelcomeImage(member) {
         const height = 250;
         const image = new Jimp(width, height);
 
-        // BRIGHTER gradient - Purple (#9333ea) to Blue (#3b82f6)
+        // Purple to Blue gradient
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const ratio = (x + y) / (width + height);
@@ -20,6 +20,17 @@ async function createWelcomeImage(member) {
                 image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
             }
         }
+
+        // Load fonts
+        const fontLarge = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+        const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+
+        // Print WELCOME text
+        image.print(fontLarge, 40, 60, 'WELCOME');
+
+        // Print username
+        const username = member.user.displayName || member.user.username;
+        image.print(fontMedium, 40, 140, username);
 
         // Avatar
         const avatarSize = 120;
@@ -49,7 +60,7 @@ async function createWelcomeImage(member) {
 }
 
 /**
- * Creates a modern goodbye image - BRIGHTER red gradient
+ * Creates a goodbye image with GOODBYE text and username
  */
 async function createLeaveImage(member) {
     try {
@@ -57,7 +68,7 @@ async function createLeaveImage(member) {
         const height = 250;
         const image = new Jimp(width, height);
 
-        // BRIGHTER gradient - Red (#ef4444) to Purple (#a855f7)
+        // Red to Purple gradient
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const ratio = (x + y) / (width + height);
@@ -68,7 +79,18 @@ async function createLeaveImage(member) {
             }
         }
 
-        // Avatar - grayscale for sadness
+        // Load fonts
+        const fontLarge = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+        const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+
+        // Print GOODBYE text
+        image.print(fontLarge, 40, 60, 'GOODBYE');
+
+        // Print username
+        const username = member.user.displayName || member.user.username;
+        image.print(fontMedium, 40, 140, username);
+
+        // Avatar - grayscale
         const avatarSize = 120;
         const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
         const avatar = await Jimp.read(avatarUrl);
@@ -97,15 +119,15 @@ async function createLeaveImage(member) {
 }
 
 /**
- * Creates a modern invite image - BRIGHTER green gradient
+ * Creates an invite image with NEW INVITE text
  */
-async function createInviteImage(user) {
+async function createInviteImage(user, inviterName = '') {
     try {
         const width = 800;
         const height = 250;
         const image = new Jimp(width, height);
 
-        // BRIGHTER gradient - Green (#22c55e) to Teal (#14b8a6)
+        // Green to Teal gradient
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const ratio = (x + y) / (width + height);
@@ -114,6 +136,23 @@ async function createInviteImage(user) {
                 const b = Math.round(94 + (166 - 94) * ratio);
                 image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
             }
+        }
+
+        // Load fonts
+        const fontLarge = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+        const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+        const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+
+        // Print NEW INVITE text
+        image.print(fontLarge, 40, 50, 'NEW INVITE');
+
+        // Print username
+        const username = user.displayName || user.username;
+        image.print(fontMedium, 40, 130, username);
+
+        // Print invited by (if provided)
+        if (inviterName) {
+            image.print(fontSmall, 40, 180, `Invited by: ${inviterName}`);
         }
 
         // Avatar
