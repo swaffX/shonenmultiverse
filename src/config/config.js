@@ -53,7 +53,7 @@ module.exports = {
 
     // Status
     statusMessages: [
-        { name: 'Saving Konoha', type: 'Playing' }
+        { name: 'Roblox Studio: Shonen Multiverse', type: 'Playing' }
     ],
 
     // Anti-spam
