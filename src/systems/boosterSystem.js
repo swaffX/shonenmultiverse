@@ -27,18 +27,7 @@ async function initBoosterSystem(client) {
 }
 
 /**
- * Get boost count for a member (Discord doesn't provide this directly, so we estimate)
- * A user with premiumSince counts as 1 boost, but they might have multiple
- */
-function getMemberBoostCount(member, guild) {
-    // Discord API doesn't tell us how many boosts each user has
-    // We can only know if they're boosting (premiumSince !== null)
-    // For now, return 1 if boosting, but note in description
-    return member.premiumSince ? 1 : 0;
-}
-
-/**
- * Create or update the booster leaderboard embed
+ * Create or update the booster leaderboard embed - MODERN VERSION
  */
 async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
     try {
@@ -55,47 +44,97 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
                 .values()
         ).sort((a, b) => a.premiumSince - b.premiumSince);
 
-        // Build booster list with proper mentions and boost time
-        const boosterList = boostersArray.map((member, index) => {
-            const boostTime = member.premiumSince;
-            const timeAgo = `<t:${Math.floor(boostTime.getTime() / 1000)}:R>`;
-            // Days boosting
-            const daysBoosting = Math.floor((Date.now() - boostTime.getTime()) / (1000 * 60 * 60 * 24));
-            return `**${index + 1}.** <@${member.id}> • Boosting for **${daysBoosting}** days • ${timeAgo}`;
-        });
-
         const boostLevel = guild.premiumTier;
         const boostCount = guild.premiumSubscriptionCount || 0;
         const boostEmoji = getBoostEmoji(boostLevel);
 
+        // Calculate next level requirements
+        const nextLevelReqs = {
+            0: { next: 2, perks: 'Custom Emojis, Better Audio' },
+            1: { next: 7, perks: 'More Emojis, Upload Limit 50MB' },
+            2: { next: 14, perks: 'Vanity URL, Banner, 100MB Uploads' },
+            3: { next: 0, perks: 'All perks unlocked!' }
+        };
+
+        const levelInfo = nextLevelReqs[boostLevel];
+        const boostsForNext = Math.max(0, levelInfo.next - boostCount);
+
+        // Build booster list with avatars and time
+        const boosterListLines = boostersArray.slice(0, 15).map((member, index) => {
+            const boostTime = member.premiumSince;
+            const daysBoosting = Math.floor((Date.now() - boostTime.getTime()) / (1000 * 60 * 60 * 24));
+
+            let medal = '';
+            if (index === 0) medal = '👑';
+            else if (index === 1) medal = '🥈';
+            else if (index === 2) medal = '🥉';
+            else medal = `\`${index + 1}.\``;
+
+            return `${medal} <@${member.id}>\n> ⏱️ **${daysBoosting}** days • <t:${Math.floor(boostTime.getTime() / 1000)}:R>`;
+        });
+
         const embed = new EmbedBuilder()
-            .setColor('#FF73FA') // Nitro pink
+            .setColor('#FF73FA')
             .setAuthor({
-                name: '✨ Server Boosters',
+                name: 'SERVER BOOSTERS',
                 iconURL: guild.iconURL({ dynamic: true })
             })
-            .setTitle(`${boostEmoji} ${guild.name} Boosters`)
-            .setDescription([
-                `**Total Boosts:** \`${boostCount}\` ${boostEmoji}`,
-                `**Boost Level:** \`Level ${boostLevel}\``,
-                `**Boosters:** \`${boostersArray.length}\``,
-                '',
-                '───────────────────',
-                '',
-                boostersArray.length > 0
-                    ? boosterList.slice(0, 25).join('\n')
-                    : '*No boosters yet. Be the first to boost!*',
-                boostersArray.length > 25 ? `\n*...and ${boostersArray.length - 25} more boosters!*` : ''
-            ].join('\n'))
+            .setTitle(`${boostEmoji} ${guild.name}`)
+            .setDescription(
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `<:boost:1064277018159849514> **Boost Statistics**\n\n` +
+                `> 🚀 **Total Boosts:** \`${boostCount}\`\n` +
+                `> ⚡ **Boost Level:** \`Level ${boostLevel}\`\n` +
+                `> 👥 **Active Boosters:** \`${boostersArray.length}\`\n` +
+                (boostLevel < 3 ? `> 📈 **Next Level:** \`${boostsForNext}\` more boosts\n` : '') +
+                `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+            )
+            .addFields(
+                {
+                    name: `🏆 Booster Hall of Fame (${boostersArray.length})`,
+                    value: boostersArray.length > 0
+                        ? boosterListLines.join('\n\n')
+                        : '> *No boosters yet. Be the first to boost!* 💫',
+                    inline: false
+                }
+            )
+            .setThumbnail(guild.iconURL({ dynamic: true, size: 512 }))
             .setFooter({
-                text: `Thank you for supporting ${guild.name}! 💖`,
-                iconURL: guild.iconURL({ dynamic: true })
+                text: `💖 Thank you for supporting ${guild.name}!`,
+                iconURL: 'https://cdn.discordapp.com/emojis/1064277018159849514.webp'
             })
             .setTimestamp();
+
+        // Add perks info for current level
+        if (boostLevel > 0) {
+            const currentPerks = [
+                boostLevel >= 1 ? '✅ 100 Emoji Slots' : '',
+                boostLevel >= 1 ? '✅ 128kbps Audio' : '',
+                boostLevel >= 2 ? '✅ 50MB Upload Limit' : '',
+                boostLevel >= 2 ? '✅ Custom Server Banner' : '',
+                boostLevel >= 3 ? '✅ Vanity URL' : '',
+                boostLevel >= 3 ? '✅ 100MB Upload Limit' : ''
+            ].filter(p => p).join('\n');
+
+            embed.addFields({
+                name: '✨ Current Perks',
+                value: `\`\`\`\n${currentPerks}\n\`\`\``,
+                inline: false
+            });
+        }
 
         // Add banner if provided
         if (bannerUrl) {
             embed.setImage(bannerUrl);
+        }
+
+        // Add extra info if many boosters
+        if (boostersArray.length > 15) {
+            embed.addFields({
+                name: '📋 More Boosters',
+                value: `> *...and ${boostersArray.length - 15} more amazing boosters!*`,
+                inline: false
+            });
         }
 
         // Get guild data for stored message ID
@@ -109,7 +148,6 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
                 await existingMessage.edit({ embeds: [embed] });
                 return existingMessage;
             } catch (err) {
-                // Message was deleted or not found - send new one
                 console.log('Booster message not found, creating new one...');
             }
         }
@@ -147,7 +185,6 @@ async function handleNewBoost(member, client) {
     const guild = member.guild;
 
     try {
-        // Use hardcoded channel ID
         const channelId = BOOST_CHANNEL_ID;
         const channel = guild.channels.cache.get(channelId);
 
@@ -156,35 +193,36 @@ async function handleNewBoost(member, client) {
             return;
         }
 
-        // Get boost count
         const boostCount = guild.premiumSubscriptionCount || 0;
         const boostLevel = guild.premiumTier;
+        const boosterCount = guild.members.cache.filter(m => m.premiumSince).size;
 
-        // Send thank you message
+        // Modern thank you embed
         const thankEmbed = new EmbedBuilder()
             .setColor('#FF73FA')
-            .setTitle('🎉 New Server Boost!')
-            .setDescription([
-                `# Thank you <@${member.id}>!`,
-                '',
-                `You just boosted **${guild.name}**! 💖`,
-                '',
-                `🚀 **Server Stats:**`,
-                `> Total Boosts: **${boostCount}**`,
-                `> Boost Level: **Level ${boostLevel}**`,
-                `> Total Boosters: **${guild.members.cache.filter(m => m.premiumSince).size}**`,
-                '',
-                `Your support helps make our community even better! ✨`
-            ].join('\n'))
+            .setAuthor({
+                name: '🎉 NEW SERVER BOOST!',
+                iconURL: guild.iconURL({ dynamic: true })
+            })
+            .setTitle(`Thank you, ${member.user.username}!`)
+            .setDescription(
+                `<@${member.id}> just boosted **${guild.name}**! 💖\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `> 🚀 **Total Boosts:** \`${boostCount}\`\n` +
+                `> ⚡ **Boost Level:** \`Level ${boostLevel}\`\n` +
+                `> 👥 **Total Boosters:** \`${boosterCount}\`\n\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `Your support helps unlock amazing perks for everyone! ✨`
+            )
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
             .setImage('https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif')
             .setFooter({
-                text: `${guild.name} • ${new Date().toLocaleDateString()}`,
+                text: `${guild.name} • Boosted just now!`,
                 iconURL: guild.iconURL({ dynamic: true })
             })
             .setTimestamp();
 
-        await channel.send({ embeds: [thankEmbed] });
+        await channel.send({ content: `<@${member.id}>`, embeds: [thankEmbed] });
         console.log(`🚀 Boost notification sent for ${member.user.tag}`);
 
         // Update the booster leaderboard embed
@@ -192,7 +230,6 @@ async function handleNewBoost(member, client) {
         if (guildData?.boosterSystem?.enabled) {
             await updateBoosterEmbed(guild, guildData.boosterSystem.channelId, guildData.boosterSystem.bannerUrl);
         } else {
-            // Auto-enable and create embed in boost channel
             await updateBoosterEmbed(guild, channelId);
         }
 
