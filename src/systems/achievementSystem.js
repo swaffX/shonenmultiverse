@@ -1,42 +1,42 @@
 const { EmbedBuilder } = require('discord.js');
 const Achievement = require('../models/Achievement');
 const User = require('../models/User');
-const Invite = require('../models/Invite');
+const { getUserInvites } = require('./inviteSystem');
 
-// Achievement notification channel (same as level channel)
+// Achievement notification channel
 const ACHIEVEMENT_CHANNEL_ID = '1448111611733741710';
 
-// Achievement definitions
+// Achievement definitions - ALL ENGLISH
 const ACHIEVEMENTS = {
     // Message achievements
     msg_starter: {
         id: 'msg_starter',
-        name: '💬 İlk Adım',
-        description: 'İlk mesajını gönder',
+        name: '💬 First Step',
+        description: 'Send your first message',
         emoji: '💬',
         requirement: { type: 'messages', count: 1 },
         xpReward: 50
     },
     msg_chatter: {
         id: 'msg_chatter',
-        name: '🗣️ Geveze',
-        description: '100 mesaj gönder',
+        name: '🗣️ Chatterbox',
+        description: 'Send 100 messages',
         emoji: '🗣️',
         requirement: { type: 'messages', count: 100 },
         xpReward: 200
     },
     msg_talkative: {
         id: 'msg_talkative',
-        name: '📢 Konuşkan',
-        description: '500 mesaj gönder',
+        name: '📢 Talkative',
+        description: 'Send 500 messages',
         emoji: '📢',
         requirement: { type: 'messages', count: 500 },
         xpReward: 500
     },
     msg_legend: {
         id: 'msg_legend',
-        name: '🏆 Sohbet Efsanesi',
-        description: '2000 mesaj gönder',
+        name: '🏆 Chat Legend',
+        description: 'Send 2000 messages',
         emoji: '🏆',
         requirement: { type: 'messages', count: 2000 },
         xpReward: 1500
@@ -45,24 +45,24 @@ const ACHIEVEMENTS = {
     // Voice achievements
     voice_listener: {
         id: 'voice_listener',
-        name: '🎧 Dinleyici',
-        description: '1 saat sesli kanalda kal',
+        name: '🎧 Listener',
+        description: 'Stay 1 hour in voice channel',
         emoji: '🎧',
-        requirement: { type: 'voice', count: 60 }, // minutes
+        requirement: { type: 'voice', count: 60 },
         xpReward: 100
     },
     voice_regular: {
         id: 'voice_regular',
-        name: '🎤 Ses Sanatçısı',
-        description: '10 saat sesli kanalda kal',
+        name: '🎤 Voice Artist',
+        description: 'Stay 10 hours in voice channel',
         emoji: '🎤',
         requirement: { type: 'voice', count: 600 },
         xpReward: 500
     },
     voice_addict: {
         id: 'voice_addict',
-        name: '🎙️ Ses Bağımlısı',
-        description: '50 saat sesli kanalda kal',
+        name: '🎙️ Voice Addict',
+        description: 'Stay 50 hours in voice channel',
         emoji: '🎙️',
         requirement: { type: 'voice', count: 3000 },
         xpReward: 2000
@@ -71,32 +71,32 @@ const ACHIEVEMENTS = {
     // Level achievements
     level_rookie: {
         id: 'level_rookie',
-        name: '⭐ Çaylak',
-        description: 'Level 5\'e ulaş',
+        name: '⭐ Rookie',
+        description: 'Reach Level 5',
         emoji: '⭐',
         requirement: { type: 'level', count: 5 },
         xpReward: 100
     },
     level_warrior: {
         id: 'level_warrior',
-        name: '⚔️ Savaşçı',
-        description: 'Level 15\'e ulaş',
+        name: '⚔️ Warrior',
+        description: 'Reach Level 15',
         emoji: '⚔️',
         requirement: { type: 'level', count: 15 },
         xpReward: 300
     },
     level_master: {
         id: 'level_master',
-        name: '👑 Usta',
-        description: 'Level 30\'a ulaş',
+        name: '👑 Master',
+        description: 'Reach Level 30',
         emoji: '👑',
         requirement: { type: 'level', count: 30 },
         xpReward: 750
     },
     level_legend: {
         id: 'level_legend',
-        name: '🔥 Efsane',
-        description: 'Level 50\'ye ulaş',
+        name: '🔥 Legend',
+        description: 'Reach Level 50',
         emoji: '🔥',
         requirement: { type: 'level', count: 50 },
         xpReward: 2000
@@ -105,16 +105,16 @@ const ACHIEVEMENTS = {
     // Invite achievements
     invite_first: {
         id: 'invite_first',
-        name: '🤝 Arkadaş Canlısı',
-        description: 'İlk davetini yap',
+        name: '🤝 Friendly',
+        description: 'Invite your first member',
         emoji: '🤝',
         requirement: { type: 'invites', count: 1 },
         xpReward: 100
     },
     invite_recruiter: {
         id: 'invite_recruiter',
-        name: '📣 İşe Alımcı',
-        description: '5 kişi davet et',
+        name: '📣 Recruiter',
+        description: 'Invite 5 members',
         emoji: '📣',
         requirement: { type: 'invites', count: 5 },
         xpReward: 300
@@ -122,7 +122,7 @@ const ACHIEVEMENTS = {
     invite_influencer: {
         id: 'invite_influencer',
         name: '🌟 Influencer',
-        description: '25 kişi davet et',
+        description: 'Invite 25 members',
         emoji: '🌟',
         requirement: { type: 'invites', count: 25 },
         xpReward: 1000
@@ -131,8 +131,8 @@ const ACHIEVEMENTS = {
     // Special achievements
     early_bird: {
         id: 'early_bird',
-        name: '🐦 Erken Kuş',
-        description: 'Sunucuya ilk 100 kişi arasında katıl',
+        name: '🐦 Early Bird',
+        description: 'Join among the first 100 members',
         emoji: '🐦',
         requirement: { type: 'special', condition: 'early_member' },
         xpReward: 500
@@ -152,11 +152,13 @@ async function checkAchievements(member, client) {
         const guild = client.guilds.cache.get(guildId);
         if (!guild) return [];
 
-        const [achievementData, userData, inviteData] = await Promise.all([
+        const [achievementData, userData] = await Promise.all([
             Achievement.findOrCreate(userId, guildId),
-            User.findOne({ oderId: userId, guildId }),
-            Invite.findOne({ oderId: userId, guildId })
+            User.findOne({ oderId: userId, guildId })
         ]);
+
+        // Get invite count from Discord API
+        const inviteCount = await getUserInvites(guild, userId);
 
         const newUnlocks = [];
 
@@ -177,10 +179,9 @@ async function checkAchievements(member, client) {
                     if (userData && userData.level >= req.count) unlocked = true;
                     break;
                 case 'invites':
-                    if (inviteData && inviteData.validInvites >= req.count) unlocked = true;
+                    if (inviteCount >= req.count) unlocked = true;
                     break;
                 case 'special':
-                    // Handle special achievements elsewhere
                     break;
             }
 
@@ -201,7 +202,7 @@ async function checkAchievements(member, client) {
 
             // Send notification
             const channel = guild.channels.cache.get(ACHIEVEMENT_CHANNEL_ID);
-            if (channel && newUnlocks.length > 0) {
+            if (channel) {
                 for (const achievement of newUnlocks) {
                     await sendAchievementNotification(channel, userId, achievement);
                 }
@@ -217,19 +218,19 @@ async function checkAchievements(member, client) {
 }
 
 /**
- * Send achievement unlock notification
+ * Send achievement unlock notification - ALL ENGLISH
  */
 async function sendAchievementNotification(channel, userId, achievement) {
     const embed = new EmbedBuilder()
         .setColor('#FFD700')
-        .setTitle(`${achievement.emoji} Başarım Kazanıldı!`)
+        .setTitle(`${achievement.emoji} Achievement Unlocked!`)
         .setDescription([
-            `<@${userId}> başarım açtı:`,
+            `<@${userId}> unlocked an achievement:`,
             '',
             `**${achievement.name}**`,
             `> ${achievement.description}`,
             '',
-            `🎁 **+${achievement.xpReward} XP** kazanıldı!`
+            `🎁 **+${achievement.xpReward} XP** earned!`
         ].join('\n'))
         .setTimestamp();
 
@@ -239,12 +240,14 @@ async function sendAchievementNotification(channel, userId, achievement) {
 /**
  * Get all achievements with user progress
  */
-async function getUserAchievements(userId, guildId) {
-    const [achievementData, userData, inviteData] = await Promise.all([
+async function getUserAchievements(userId, guildId, guild) {
+    const [achievementData, userData] = await Promise.all([
         Achievement.findOrCreate(userId, guildId),
-        User.findOne({ oderId: userId, guildId }),
-        Invite.findOne({ oderId: userId, guildId })
+        User.findOne({ oderId: userId, guildId })
     ]);
+
+    // Get invite count from Discord API
+    const inviteCount = guild ? await getUserInvites(guild, userId) : 0;
 
     const result = [];
 
@@ -266,7 +269,7 @@ async function getUserAchievements(userId, guildId) {
                     progress = userData?.level || 0;
                     break;
                 case 'invites':
-                    progress = inviteData?.validInvites || 0;
+                    progress = inviteCount;
                     break;
             }
         }
