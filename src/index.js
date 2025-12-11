@@ -104,7 +104,7 @@ client.once(Events.ClientReady, async () => {
         });
     } else {
         client.user.setPresence({
-            activities: [{ name: 'Shonen Multiverse', type: ActivityType.Playing }],
+            activities: [{ name: config.statusMessages[0].name, type: ActivityType.Playing }],
             status: 'online'
         });
     }
