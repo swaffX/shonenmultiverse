@@ -1,5 +1,6 @@
 const { EmbedBuilder, Collection } = require('discord.js');
 const Invite = require('../models/Invite');
+const { createInviteImage } = require('./welcomeImageSystem');
 
 // Cache for tracking invites
 const inviteCache = new Collection();
@@ -122,10 +123,8 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
     if (!channel) return;
 
-    // Calculate account age
-    const accountAgeMs = Date.now() - member.user.createdTimestamp;
-    const accountAgeDays = Math.floor(accountAgeMs / (1000 * 60 * 60 * 24));
-    const accountAgeText = accountAgeDays > 0 ? `${accountAgeDays} days` : 'Less than a day';
+    // Generate invite image
+    const attachment = await createInviteImage(member.user, inviteData.validInvites);
 
     const embed = new EmbedBuilder()
         .setColor(isFake ? '#F59E0B' : '#10B981')
@@ -134,6 +133,7 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
             iconURL: guild.iconURL({ dynamic: true })
         })
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setImage('attachment://invite.png')
         .setDescription([
             `### ${member.user.username} joined the server!`,
             ``
@@ -156,7 +156,7 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
             }
         )
         .setFooter({
-            text: `Account Age: ${accountAgeText} • ID: ${member.id}`,
+            text: `Member ID: ${member.id}`,
             iconURL: member.user.displayAvatarURL({ dynamic: true })
         })
         .setTimestamp();
@@ -170,7 +170,11 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
         });
     }
 
-    await channel.send({ embeds: [embed] });
+    if (attachment) {
+        await channel.send({ embeds: [embed], files: [attachment] });
+    } else {
+        await channel.send({ embeds: [embed] });
+    }
 }
 
 /**

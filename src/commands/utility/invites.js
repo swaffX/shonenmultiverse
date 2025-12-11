@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const Invite = require('../../models/Invite');
 const { INVITE_MILESTONES } = require('../../systems/inviteSystem');
+const { createInviteImage } = require('../../systems/welcomeImageSystem');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -119,7 +120,15 @@ module.exports = {
                 });
             }
 
-            await interaction.editReply({ embeds: [embed] });
+            // Generate invite image
+            const attachment = await createInviteImage(targetUser, validInvites);
+
+            if (attachment) {
+                embed.setImage('attachment://invite.png');
+                await interaction.editReply({ embeds: [embed], files: [attachment] });
+            } else {
+                await interaction.editReply({ embeds: [embed] });
+            }
 
         } catch (error) {
             console.error('Invites command error:', error);
