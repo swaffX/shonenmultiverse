@@ -2,9 +2,10 @@ const { Events, EmbedBuilder } = require('discord.js');
 const { logMemberLeave } = require('../systems/loggingSystem');
 const { deleteUserData } = require('../systems/statsEmbedSystem');
 const { handleMemberLeave: handleInviteLeave } = require('../systems/inviteSystem');
-const config = require('../config/config');
-const Guild = require('../models/Guild');
 const { createLeaveImage } = require('../systems/welcomeImageSystem');
+
+// Hardcoded channel ID - no setup required
+const LEAVE_CHANNEL_ID = '1448030623108305081';
 
 module.exports = {
     name: Events.GuildMemberRemove,
@@ -22,61 +23,48 @@ module.exports = {
         // Skip bots for goodbye message
         if (member.user.bot) return;
 
-        // Send goodbye message
+        // Send goodbye message (no setup required)
         await sendGoodbyeMessage(member, client);
     }
 };
 
 async function sendGoodbyeMessage(member, client) {
     try {
-        const guildData = await Guild.findOne({ guildId: member.guild.id });
-
-        // Check if goodbye is enabled
-        if (!guildData?.goodbye?.enabled || !guildData.goodbye.channelId) {
+        const channel = member.guild.channels.cache.get(LEAVE_CHANNEL_ID);
+        if (!channel) {
+            console.log('Leave channel not found:', LEAVE_CHANNEL_ID);
             return;
         }
 
-        const channelId = '1448030623108305081'; // Updated Leave Channel
-        const channel = member.guild.channels.cache.get(channelId);
-        if (!channel) return;
-
         const memberCount = member.guild.memberCount;
-
-        // Modern styled message
-        const defaultMessage = `**${member.user.tag}** has left **${member.guild.name}**.\nWe now have **${memberCount}** members.`;
-
-        const message = (guildData.goodbye.message || defaultMessage)
-            .replace('{user}', `**${member.user.tag}**`)
-            .replace('{server}', `**${member.guild.name}**`)
-            .replace('{count}', `**${memberCount}**`);
 
         // Calculate how long they were in the server
         const joinedAt = member.joinedTimestamp;
         const duration = joinedAt ? formatDuration(Date.now() - joinedAt) : 'Unknown';
 
         const goodbyeEmbed = new EmbedBuilder()
-            .setColor('#ED4245') // Red for goodbye
+            .setColor('#ED4245')
             .setAuthor({
                 name: '👋 Member Left',
                 iconURL: member.guild.iconURL({ dynamic: true })
             })
             .setTitle(`Goodbye, ${member.user.username}`)
-            .setDescription(message)
+            .setDescription(`Goodbye **${member.user.username}**.. We are **${memberCount}** people now.`)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
             .addFields(
                 {
                     name: '👤 Username',
-                    value: `\`${member.user.tag}\``,
+                    value: member.user.username,
                     inline: true
                 },
                 {
                     name: '📊 Members Now',
-                    value: `\`${memberCount}\``,
+                    value: `${memberCount}`,
                     inline: true
                 },
                 {
                     name: '⏱️ Time in Server',
-                    value: `\`${duration}\``,
+                    value: duration,
                     inline: true
                 }
             )
@@ -93,11 +81,9 @@ async function sendGoodbyeMessage(member, client) {
             goodbyeEmbed.setImage('attachment://goodbye.png');
             await channel.send({ embeds: [goodbyeEmbed], files: [attachment] });
         } else {
-            if (guildData.goodbye.bannerUrl) {
-                goodbyeEmbed.setImage(guildData.goodbye.bannerUrl);
-            }
             await channel.send({ embeds: [goodbyeEmbed] });
         }
+
         console.log(`👋 Goodbye message sent for ${member.user.tag} in ${member.guild.name}`);
     } catch (error) {
         console.error('Goodbye message error:', error);

@@ -3,8 +3,11 @@ const { checkRaid } = require('../handlers/antiRaidHandler');
 const { checkBotAddition } = require('../systems/protectionSystem');
 const { logMemberJoin } = require('../systems/loggingSystem');
 const { handleMemberJoin: handleInviteJoin } = require('../systems/inviteSystem');
-const Guild = require('../models/Guild');
 const { createWelcomeImage } = require('../systems/welcomeImageSystem');
+const config = require('../config/config');
+
+// Hardcoded channel ID - no setup required
+const WELCOME_CHANNEL_ID = '1447218395564085341';
 
 module.exports = {
     name: Events.GuildMemberAdd,
@@ -15,6 +18,7 @@ module.exports = {
 
         // Track invites
         await handleInviteJoin(member).catch(console.error);
+
         // Check for bot additions
         if (member.user.bot) {
             await checkBotAddition(member, client);
@@ -26,57 +30,44 @@ module.exports = {
         await member.roles.add(unverifiedRoleId).catch(err => console.error('Failed to assign unverified role:', err));
 
         // Check for raid
-        if (config.antiRaid.enabled) {
+        if (config.antiRaid?.enabled) {
             await checkRaid(member, client);
         }
 
-        // Send welcome message
+        // Send welcome message (no setup required)
         await sendWelcomeMessage(member, client);
     }
 };
 
 async function sendWelcomeMessage(member, client) {
     try {
-        const guildData = await Guild.findOne({ guildId: member.guild.id });
-
-        // Check if welcome is enabled
-        if (!guildData?.welcome?.enabled || !guildData.welcome.channelId) {
+        const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+        if (!channel) {
+            console.log('Welcome channel not found:', WELCOME_CHANNEL_ID);
             return;
         }
 
-        const channelId = '1447218395564085341'; // Updated Welcome Channel
-        const channel = member.guild.channels.cache.get(channelId);
-        if (!channel) return;
-
         const memberCount = member.guild.memberCount;
 
-        // Modern styled message in English
-        const defaultMessage = `Hey <@${member.id}>! 🎉\n\nWelcome to **${member.guild.name}**!\nYou are our **${memberCount}${getOrdinalSuffix(memberCount)}** member!`;
-
-        const message = (guildData?.welcome?.message || defaultMessage)
-            .replace('{user}', `<@${member.id}>`)
-            .replace('{server}', `**${member.guild.name}**`)
-            .replace('{count}', `**${memberCount}**`);
-
-        // Modern gradient-style color
+        // Modern styled embed
         const welcomeEmbed = new EmbedBuilder()
-            .setColor('#5865F2') // Discord blurple for modern look
+            .setColor('#5865F2')
             .setAuthor({
                 name: '✨ New Member Joined!',
                 iconURL: member.guild.iconURL({ dynamic: true })
             })
-            .setTitle(`Welcome to the Universe, ${member.user.username}!`)
-            .setDescription(message)
+            .setTitle(`Welcome, ${member.user.username}!`)
+            .setDescription(`Welcome <@${member.id}>! Thanks for joining **${member.guild.name}**, we are **${memberCount}** people now.`)
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
             .addFields(
                 {
                     name: '👤 Username',
-                    value: `\`${member.user.tag}\``,
+                    value: member.user.username,
                     inline: true
                 },
                 {
                     name: '📊 Member #',
-                    value: `\`#${memberCount}\``,
+                    value: `#${memberCount}`,
                     inline: true
                 },
                 {
@@ -98,11 +89,9 @@ async function sendWelcomeMessage(member, client) {
             welcomeEmbed.setImage('attachment://welcome.png');
             await channel.send({ embeds: [welcomeEmbed], files: [attachment] });
         } else {
-            if (guildData.welcome.bannerUrl) {
-                welcomeEmbed.setImage(guildData.welcome.bannerUrl);
-            }
             await channel.send({ embeds: [welcomeEmbed] });
         }
+
         console.log(`👋 Welcome message sent for ${member.user.tag} in ${member.guild.name}`);
     } catch (error) {
         console.error('Welcome message error:', error);
