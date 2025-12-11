@@ -205,7 +205,117 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
-app.get('/', (req, res) => res.send('Shonen Multiverse Bot is running!'));
+app.get('/', (req, res) => res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shonen Multiverse - Roblox Verification</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1c2c 0%, #2d1b4e 50%, #1a1c2c 100%);
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo { font-size: 48px; margin-bottom: 10px; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; color: #ff6b6b; }
+        .subtitle { color: #aaa; font-size: 1.1rem; margin-bottom: 30px; }
+        .features {
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .feature { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .feature:last-child { border-bottom: none; }
+        .feature span { margin-right: 10px; }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #5865F2, #7289DA);
+            color: #fff;
+            padding: 15px 40px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(88, 101, 242, 0.3);
+        }
+        .steps {
+            text-align: left;
+            background: rgba(88, 101, 242, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .step { padding: 8px 0; display: flex; align-items: center; }
+        .step-num {
+            background: #5865F2;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .footer { margin-top: 30px; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎮</div>
+        <h1>Shonen Multiverse</h1>
+        <p class="subtitle">Connect your Roblox account with Discord</p>
+        
+        <div class="features">
+            <div class="feature"><span>✅</span> Verify your Roblox account ownership</div>
+            <div class="feature"><span>🎭</span> Sync your Discord roles with Roblox rank</div>
+            <div class="feature"><span>📊</span> Track your activity and earn rewards</div>
+            <div class="feature"><span>🎮</span> Access exclusive in-game features</div>
+        </div>
+        
+        <a href="https://discord.gg/YourInviteCode" class="btn">Join Discord Server</a>
+        
+        <div class="steps">
+            <h3 style="margin-bottom: 15px;">📋 How to Verify:</h3>
+            <div class="step"><span class="step-num">1</span> Join our Discord server</div>
+            <div class="step"><span class="step-num">2</span> Use the /verify command</div>
+            <div class="step"><span class="step-num">3</span> Click the verification link</div>
+            <div class="step"><span class="step-num">4</span> Authorize with Roblox</div>
+            <div class="step"><span class="step-num">5</span> Get your verified role!</div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 Shonen Multiverse | <a href="/privacy" style="color:#5865F2">Privacy Policy</a> | <a href="/tos" style="color:#5865F2">Terms of Service</a></p>
+        </div>
+    </div>
+</body>
+</html>
+`));
 
 // Privacy Policy Endpoint
 app.get('/privacy', (req, res) => {
