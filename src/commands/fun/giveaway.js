@@ -36,6 +36,12 @@ module.exports = {
                 .addRoleOption(option =>
                     option.setName('required_role')
                         .setDescription('Role required to enter')
+                        .setRequired(false))
+                .addIntegerOption(option =>
+                    option.setName('required_invites')
+                        .setDescription('Minimum invites required to enter')
+                        .setMinValue(1)
+                        .setMaxValue(100)
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
@@ -98,6 +104,7 @@ async function handleStart(interaction, client) {
     const winnersCount = interaction.options.getInteger('winners') || 1;
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     const requiredRole = interaction.options.getRole('required_role');
+    const requiredInvites = interaction.options.getInteger('required_invites') || 0;
 
     const duration = ms(durationStr);
     if (!duration || duration < 60000) {
@@ -117,7 +124,7 @@ async function handleStart(interaction, client) {
     await interaction.deferReply({ ephemeral: true });
 
     try {
-        const giveaway = await createGiveaway(channel, interaction.user.id, prize, duration, winnersCount, requiredRole?.id);
+        const giveaway = await createGiveaway(channel, interaction.user.id, prize, duration, winnersCount, requiredRole?.id, requiredInvites);
 
         const embed = new EmbedBuilder()
             .setColor(config.colors.success)
@@ -133,6 +140,9 @@ async function handleStart(interaction, client) {
 
         if (requiredRole) {
             embed.addFields({ name: '🔒 Required Role', value: `${requiredRole}`, inline: true });
+        }
+        if (requiredInvites > 0) {
+            embed.addFields({ name: '📨 Required Invites', value: `${requiredInvites}`, inline: true });
         }
 
         await interaction.editReply({ embeds: [embed] });

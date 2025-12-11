@@ -42,7 +42,8 @@ const giveawaySchema = new mongoose.Schema({
     },
     requirements: {
         roleId: { type: String, default: null },
-        minLevel: { type: Number, default: 0 }
+        minLevel: { type: Number, default: 0 },
+        minInvites: { type: Number, default: 0 }
     }
 }, { timestamps: true });
 

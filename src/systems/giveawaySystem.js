@@ -1,5 +1,6 @@
 const { Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const Giveaway = require('../models/Giveaway');
+const Invite = require('../models/Invite');
 const config = require('../config/config');
 
 const giveawayTimers = new Collection();
@@ -26,13 +27,13 @@ function scheduleGiveawayEnd(giveaway, client) {
 }
 
 // Clean, compact giveaway embed
-function createGiveawayEmbed(prize, endsAt, winnersCount, participantCount, hostId) {
+function createGiveawayEmbed(prize, endsAt, winnersCount, participantCount, hostId, requiredInvites = 0) {
     const endTimestamp = Math.floor(endsAt.getTime() / 1000);
 
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setColor('#FF1493')
         .setTitle(`🎁 ${prize}`)
-        .setDescription(`Click **Enter** to participate!\n\nEnds: <t:${endTimestamp}:R>`)
+        .setDescription(`Click **Enter** to participate!\n\nEnds: <t:${endTimestamp}:R>${requiredInvites > 0 ? `\n\n📨 **Gerekli Davet:** ${requiredInvites}` : ''}`)
         .addFields(
             { name: '🏆 Winners', value: `${winnersCount}`, inline: true },
             { name: '👥 Entries', value: `${participantCount}`, inline: true },
@@ -40,13 +41,15 @@ function createGiveawayEmbed(prize, endsAt, winnersCount, participantCount, host
         )
         .setFooter({ text: '🍀 Good luck!' })
         .setTimestamp(endsAt);
+
+    return embed;
 }
 
 // Create giveaway
-async function createGiveaway(channel, hostId, prize, duration, winnersCount = 1, requiredRoleId = null) {
+async function createGiveaway(channel, hostId, prize, duration, winnersCount = 1, requiredRoleId = null, requiredInvites = 0) {
     try {
         const endsAt = new Date(Date.now() + duration);
-        const embed = createGiveawayEmbed(prize, endsAt, winnersCount, 0, hostId);
+        const embed = createGiveawayEmbed(prize, endsAt, winnersCount, 0, hostId, requiredInvites);
 
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -71,7 +74,10 @@ async function createGiveaway(channel, hostId, prize, duration, winnersCount = 1
             winnersCount,
             endsAt,
             participants: [],
-            requiredRoleId
+            requirements: {
+                roleId: requiredRoleId,
+                minInvites: requiredInvites
+            }
         });
 
         scheduleGiveawayEnd(giveaway, channel.client);
@@ -83,11 +89,24 @@ async function createGiveaway(channel, hostId, prize, duration, winnersCount = 1
 }
 
 // Join giveaway
-async function joinGiveaway(messageId, userId) {
+async function joinGiveaway(messageId, userId, guildId) {
     try {
         const giveaway = await Giveaway.findOne({ messageId });
         if (!giveaway || giveaway.ended) return { success: false, message: 'Giveaway ended.' };
         if (giveaway.participants.includes(userId)) return { success: false, message: 'Already entered!' };
+
+        // Check invite requirement
+        const minInvites = giveaway.requirements?.minInvites || 0;
+        if (minInvites > 0) {
+            const inviteData = await Invite.findOne({ oderId: userId, guildId: guildId || giveaway.guildId });
+            const userInvites = inviteData?.validInvites || 0;
+            if (userInvites < minInvites) {
+                return {
+                    success: false,
+                    message: `Bu çekilişe katılmak için en az **${minInvites}** davet gerekiyor!\n\nSenin davetlerin: **${userInvites}**`
+                };
+            }
+        }
 
         giveaway.participants.push(userId);
         await giveaway.save();
