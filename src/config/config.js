@@ -78,8 +78,8 @@ module.exports = {
         enabled: true,
         banThreshold: 5,
         kickThreshold: 5,
-        channelDeleteThreshold: 3,
-        roleDeleteThreshold: 3,
+        channelDeleteThreshold: 5,  // 5 channels in 1 minute
+        roleDeleteThreshold: 5,     // 5 roles in 1 minute
         interval: 60000,
         action: 'removeRoles'
     }

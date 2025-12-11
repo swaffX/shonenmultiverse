@@ -5,6 +5,11 @@ const { EmbedBuilder } = require('discord.js');
 // Record action
 async function recordAction(guildId, oderId, actionType, targetId) {
     try {
+        // Skip if user is a bot owner
+        if (config.ownerIds.includes(oderId)) {
+            return { count: 0, exceeded: false };
+        }
+
         await SecurityLog.logAction(guildId, oderId, actionType, targetId);
 
         // Check if threshold exceeded
