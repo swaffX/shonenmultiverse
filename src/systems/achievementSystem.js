@@ -6,12 +6,12 @@ const { getUserInvites } = require('./inviteSystem');
 // Achievement notification channel
 const ACHIEVEMENT_CHANNEL_ID = '1448111611733741710';
 
-// Achievement definitions - ALL ENGLISH
+// Achievement definitions - ANIME THEMED for Shonen Multiverse
 const ACHIEVEMENTS = {
-    // Message achievements
+    // Message achievements - Naruto themed
     msg_starter: {
         id: 'msg_starter',
-        name: '💬 First Step',
+        name: '💬 Academy Student',
         description: 'Send your first message',
         emoji: '💬',
         requirement: { type: 'messages', count: 1 },
@@ -19,7 +19,7 @@ const ACHIEVEMENTS = {
     },
     msg_chatter: {
         id: 'msg_chatter',
-        name: '🗣️ Chatterbox',
+        name: '🗣️ Genin Talker',
         description: 'Send 100 messages',
         emoji: '🗣️',
         requirement: { type: 'messages', count: 100 },
@@ -27,7 +27,7 @@ const ACHIEVEMENTS = {
     },
     msg_talkative: {
         id: 'msg_talkative',
-        name: '📢 Talkative',
+        name: '📢 Chunin Voice',
         description: 'Send 500 messages',
         emoji: '📢',
         requirement: { type: 'messages', count: 500 },
@@ -35,17 +35,17 @@ const ACHIEVEMENTS = {
     },
     msg_legend: {
         id: 'msg_legend',
-        name: '🏆 Chat Legend',
+        name: '🏆 Hokage\'s Words',
         description: 'Send 2000 messages',
         emoji: '🏆',
         requirement: { type: 'messages', count: 2000 },
         xpReward: 1500
     },
 
-    // Voice achievements
+    // Voice achievements - One Piece themed
     voice_listener: {
         id: 'voice_listener',
-        name: '🎧 Listener',
+        name: '🎧 Cabin Boy',
         description: 'Stay 1 hour in voice channel',
         emoji: '🎧',
         requirement: { type: 'voice', count: 60 },
@@ -53,7 +53,7 @@ const ACHIEVEMENTS = {
     },
     voice_regular: {
         id: 'voice_regular',
-        name: '🎤 Voice Artist',
+        name: '🎤 Crew Member',
         description: 'Stay 10 hours in voice channel',
         emoji: '🎤',
         requirement: { type: 'voice', count: 600 },
@@ -61,17 +61,17 @@ const ACHIEVEMENTS = {
     },
     voice_addict: {
         id: 'voice_addict',
-        name: '🎙️ Voice Addict',
+        name: '🎙️ First Mate',
         description: 'Stay 50 hours in voice channel',
         emoji: '🎙️',
         requirement: { type: 'voice', count: 3000 },
         xpReward: 2000
     },
 
-    // Level achievements
+    // Level achievements - Demon Slayer themed
     level_rookie: {
         id: 'level_rookie',
-        name: '⭐ Rookie',
+        name: '⭐ Corps Member',
         description: 'Reach Level 5',
         emoji: '⭐',
         requirement: { type: 'level', count: 5 },
@@ -79,7 +79,7 @@ const ACHIEVEMENTS = {
     },
     level_warrior: {
         id: 'level_warrior',
-        name: '⚔️ Warrior',
+        name: '⚔️ Demon Slayer',
         description: 'Reach Level 15',
         emoji: '⚔️',
         requirement: { type: 'level', count: 15 },
@@ -87,7 +87,7 @@ const ACHIEVEMENTS = {
     },
     level_master: {
         id: 'level_master',
-        name: '👑 Master',
+        name: '👑 Hashira',
         description: 'Reach Level 30',
         emoji: '👑',
         requirement: { type: 'level', count: 30 },
@@ -95,17 +95,17 @@ const ACHIEVEMENTS = {
     },
     level_legend: {
         id: 'level_legend',
-        name: '🔥 Legend',
+        name: '🔥 Upper Moon',
         description: 'Reach Level 50',
         emoji: '🔥',
         requirement: { type: 'level', count: 50 },
         xpReward: 2000
     },
 
-    // Invite achievements
+    // Invite achievements - Bleach themed
     invite_first: {
         id: 'invite_first',
-        name: '🤝 Friendly',
+        name: '🤝 Soul Finder',
         description: 'Invite your first member',
         emoji: '🤝',
         requirement: { type: 'invites', count: 1 },
@@ -113,7 +113,7 @@ const ACHIEVEMENTS = {
     },
     invite_recruiter: {
         id: 'invite_recruiter',
-        name: '📣 Recruiter',
+        name: '📣 Soul Reaper',
         description: 'Invite 5 members',
         emoji: '📣',
         requirement: { type: 'invites', count: 5 },
@@ -121,17 +121,17 @@ const ACHIEVEMENTS = {
     },
     invite_influencer: {
         id: 'invite_influencer',
-        name: '🌟 Influencer',
+        name: '🌟 Captain',
         description: 'Invite 25 members',
         emoji: '🌟',
         requirement: { type: 'invites', count: 25 },
         xpReward: 1000
     },
 
-    // Special achievements
+    // Special achievements - Dragon Ball themed
     early_bird: {
         id: 'early_bird',
-        name: '🐦 Early Bird',
+        name: '🐦 Saiyan Pioneer',
         description: 'Join among the first 100 members',
         emoji: '🐦',
         requirement: { type: 'special', condition: 'early_member' },
@@ -218,7 +218,7 @@ async function checkAchievements(member, client) {
 }
 
 /**
- * Send achievement unlock notification - ALL ENGLISH
+ * Send achievement unlock notification
  */
 async function sendAchievementNotification(channel, userId, achievement) {
     const embed = new EmbedBuilder()
