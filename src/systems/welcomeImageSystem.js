@@ -1,111 +1,108 @@
 const Jimp = require('jimp');
 const { AttachmentBuilder } = require('discord.js');
-const path = require('path');
-
-// Background images directory
-const ASSETS_DIR = path.join(__dirname, '../../assets');
 
 /**
- * Creates a circular avatar with optional border
- */
-async function createCircularAvatar(avatarUrl, size = 200) {
-    const avatar = await Jimp.read(avatarUrl);
-    avatar.resize(size, size);
-    avatar.circle();
-    return avatar;
-}
-
-/**
- * Creates a gradient-like background using Jimp
- */
-function createGradientBackground(width, height, color1, color2) {
-    const image = new Jimp(width, height);
-
-    for (let y = 0; y < height; y++) {
-        const ratio = y / height;
-        const r1 = (color1 >> 24) & 0xFF;
-        const g1 = (color1 >> 16) & 0xFF;
-        const b1 = (color1 >> 8) & 0xFF;
-        const r2 = (color2 >> 24) & 0xFF;
-        const g2 = (color2 >> 16) & 0xFF;
-        const b2 = (color2 >> 8) & 0xFF;
-
-        const r = Math.round(r1 + (r2 - r1) * ratio);
-        const g = Math.round(g1 + (g2 - g1) * ratio);
-        const b = Math.round(b1 + (b2 - b1) * ratio);
-
-        for (let x = 0; x < width; x++) {
-            image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
-        }
-    }
-    return image;
-}
-
-/**
- * Creates a MEE6-style welcome image
+ * Creates a modern welcome image with anime-style gradient and avatar
+ * No text on image - embed handles all text
  */
 async function createWelcomeImage(member) {
     try {
-        const width = 900;
-        const height = 300;
+        const width = 800;
+        const height = 250;
 
-        // Create gradient background (dark purple to dark blue)
-        const image = createGradientBackground(width, height, 0x1a1c2cFF, 0x2d1b4eFF);
+        // Create anime-style purple/blue gradient background
+        const image = new Jimp(width, height);
 
-        // Add a subtle dark overlay on left for text readability
-        const leftOverlay = new Jimp(width * 0.65, height, '#00000080');
-        image.composite(leftOverlay, 0, 0);
-
-        // Load fonts
-        const fontLarge = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
-        const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
-
-        // Create and place circular avatar on the right side
-        const avatarSize = 180;
-        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
-        const avatar = await createCircularAvatar(avatarUrl, avatarSize);
-
-        // Create avatar border (purple ring)
-        const borderSize = avatarSize + 10;
-        const avatarBorder = new Jimp(borderSize, borderSize, '#8b5cf6FF');
-        avatarBorder.circle();
-
-        // Position avatar on right side
-        const avatarX = width - avatarSize - 60;
-        const avatarY = (height - avatarSize) / 2;
-
-        // Composite border then avatar
-        image.composite(avatarBorder, avatarX - 5, avatarY - 5);
-        image.composite(avatar, avatarX, avatarY);
-
-        // Text positioning (left side)
-        const textX = 40;
-
-        // "WELCOME" title
-        image.print(fontLarge, textX, 50, 'WELCOME');
-
-        // Username
-        const username = member.user.displayName || member.user.username;
-        image.print(fontMedium, textX, 130, username);
-
-        // Member count with ordinal
-        const memberCount = member.guild.memberCount;
-        const ordinal = getOrdinalSuffix(memberCount);
-        const memberText = `You are the ${memberCount}${ordinal} member!`;
-        image.print(fontSmall, textX, 180, memberText);
-
-        // Server name
-        const serverText = `Welcome to ${member.guild.name}`;
-        image.print(fontSmall, textX, 210, serverText);
-
-        // Create subtle decorative line
-        for (let x = textX; x < textX + 200; x++) {
-            image.setPixelColor(0x8b5cf6FF, x, 240);
-            image.setPixelColor(0x8b5cf6FF, x, 241);
+        // Create diagonal gradient effect (dark purple to blue)
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const ratio = (x + y) / (width + height);
+                // Purple (#8b5cf6) to Blue (#3b82f6) gradient
+                const r = Math.round(139 + (59 - 139) * ratio);
+                const g = Math.round(92 + (130 - 92) * ratio);
+                const b = Math.round(246 + (246 - 246) * ratio);
+                image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
+            }
         }
 
-        // Get buffer and return
+        // Add dark overlay on the left side for depth
+        const overlay = new Jimp(width, height);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const opacity = Math.max(0, 80 - (x / width) * 80);
+                overlay.setPixelColor(Jimp.rgbaToInt(0, 0, 0, opacity), x, y);
+            }
+        }
+        image.composite(overlay, 0, 0);
+
+        // Add subtle pattern/glow effect
+        for (let i = 0; i < 5; i++) {
+            const glowX = Math.random() * width;
+            const glowY = Math.random() * height;
+            const glowSize = 50 + Math.random() * 100;
+
+            for (let y = Math.max(0, glowY - glowSize); y < Math.min(height, glowY + glowSize); y++) {
+                for (let x = Math.max(0, glowX - glowSize); x < Math.min(width, glowX + glowSize); x++) {
+                    const dist = Math.sqrt((x - glowX) ** 2 + (y - glowY) ** 2);
+                    if (dist < glowSize) {
+                        const currentColor = Jimp.intToRGBA(image.getPixelColor(x, y));
+                        const intensity = Math.round(30 * (1 - dist / glowSize));
+                        const newR = Math.min(255, currentColor.r + intensity);
+                        const newG = Math.min(255, currentColor.g + intensity);
+                        const newB = Math.min(255, currentColor.b + intensity);
+                        image.setPixelColor(Jimp.rgbaToInt(newR, newG, newB, 255), x, y);
+                    }
+                }
+            }
+        }
+
+        // Load and place avatar
+        const avatarSize = 140;
+        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
+        const avatar = await Jimp.read(avatarUrl);
+        avatar.resize(avatarSize, avatarSize);
+        avatar.circle();
+
+        // Create glowing border for avatar
+        const borderSize = avatarSize + 12;
+        const border = new Jimp(borderSize, borderSize);
+
+        // Create gradient border
+        for (let y = 0; y < borderSize; y++) {
+            for (let x = 0; x < borderSize; x++) {
+                const centerX = borderSize / 2;
+                const centerY = borderSize / 2;
+                const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                const innerRadius = avatarSize / 2;
+                const outerRadius = borderSize / 2;
+
+                if (dist >= innerRadius && dist <= outerRadius) {
+                    // Gradient from purple to cyan
+                    const ratio = (dist - innerRadius) / (outerRadius - innerRadius);
+                    const r = Math.round(139 * (1 - ratio) + 34 * ratio);
+                    const g = Math.round(92 * (1 - ratio) + 211 * ratio);
+                    const b = Math.round(246 * (1 - ratio) + 238 * ratio);
+                    border.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
+                }
+            }
+        }
+        border.circle();
+
+        // Position avatar on right side
+        const avatarX = width - avatarSize - 50;
+        const avatarY = (height - avatarSize) / 2;
+
+        image.composite(border, avatarX - 6, avatarY - 6);
+        image.composite(avatar, avatarX, avatarY);
+
+        // Add decorative accent line at bottom
+        for (let x = 30; x < width - 200; x++) {
+            const progress = (x - 30) / (width - 230);
+            const opacity = Math.min(255, 200 * (1 - progress));
+            image.setPixelColor(Jimp.rgbaToInt(255, 255, 255, opacity), x, height - 20);
+            image.setPixelColor(Jimp.rgbaToInt(255, 255, 255, opacity * 0.5), x, height - 19);
+        }
+
         const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
         return new AttachmentBuilder(buffer, { name: 'welcome.png' });
 
@@ -116,68 +113,85 @@ async function createWelcomeImage(member) {
 }
 
 /**
- * Creates a MEE6-style goodbye image
+ * Creates a modern goodbye image with anime-style red gradient and grayscale avatar
+ * No text on image - embed handles all text
  */
 async function createLeaveImage(member) {
     try {
-        const width = 900;
-        const height = 300;
+        const width = 800;
+        const height = 250;
 
-        // Create gradient background (dark red to dark purple)
-        const image = createGradientBackground(width, height, 0x2c1a1aFF, 0x4a1a2eFF);
+        // Create anime-style red/dark gradient background
+        const image = new Jimp(width, height);
 
-        // Add left overlay
-        const leftOverlay = new Jimp(width * 0.65, height, '#00000080');
-        image.composite(leftOverlay, 0, 0);
+        // Create diagonal gradient effect (dark red to dark purple)
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const ratio = (x + y) / (width + height);
+                // Dark Red (#dc2626) to Dark Purple (#7c3aed) gradient
+                const r = Math.round(220 + (124 - 220) * ratio);
+                const g = Math.round(38 + (58 - 38) * ratio);
+                const b = Math.round(38 + (237 - 38) * ratio);
+                image.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
+            }
+        }
 
-        // Load fonts
-        const fontLarge = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
-        const fontMedium = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+        // Add dark overlay
+        const overlay = new Jimp(width, height);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const opacity = Math.max(0, 100 - (x / width) * 100);
+                overlay.setPixelColor(Jimp.rgbaToInt(0, 0, 0, opacity), x, y);
+            }
+        }
+        image.composite(overlay, 0, 0);
 
-        // Avatar with red border
-        const avatarSize = 180;
+        // Load avatar and make it grayscale
+        const avatarSize = 140;
         const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
-        const avatar = await createCircularAvatar(avatarUrl, avatarSize);
+        const avatar = await Jimp.read(avatarUrl);
+        avatar.resize(avatarSize, avatarSize);
+        avatar.greyscale(); // Sad effect for goodbye
+        avatar.brightness(-0.1);
+        avatar.circle();
 
-        // Make avatar slightly grayscale for goodbye effect
-        avatar.greyscale();
-        avatar.brightness(0.2);
+        // Create red border for avatar
+        const borderSize = avatarSize + 12;
+        const border = new Jimp(borderSize, borderSize);
 
-        // Red border
-        const borderSize = avatarSize + 10;
-        const avatarBorder = new Jimp(borderSize, borderSize, '#ef4444FF');
-        avatarBorder.circle();
+        for (let y = 0; y < borderSize; y++) {
+            for (let x = 0; x < borderSize; x++) {
+                const centerX = borderSize / 2;
+                const centerY = borderSize / 2;
+                const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                const innerRadius = avatarSize / 2;
+                const outerRadius = borderSize / 2;
 
-        // Position
-        const avatarX = width - avatarSize - 60;
+                if (dist >= innerRadius && dist <= outerRadius) {
+                    // Red gradient border
+                    const ratio = (dist - innerRadius) / (outerRadius - innerRadius);
+                    const r = Math.round(239 * (1 - ratio) + 185 * ratio);
+                    const g = Math.round(68 * (1 - ratio) + 28 * ratio);
+                    const b = Math.round(68 * (1 - ratio) + 28 * ratio);
+                    border.setPixelColor(Jimp.rgbaToInt(r, g, b, 255), x, y);
+                }
+            }
+        }
+        border.circle();
+
+        // Position avatar
+        const avatarX = width - avatarSize - 50;
         const avatarY = (height - avatarSize) / 2;
 
-        image.composite(avatarBorder, avatarX - 5, avatarY - 5);
+        image.composite(border, avatarX - 6, avatarY - 6);
         image.composite(avatar, avatarX, avatarY);
 
-        // Text
-        const textX = 40;
-
-        image.print(fontLarge, textX, 50, 'GOODBYE');
-
-        const username = member.user.displayName || member.user.username;
-        image.print(fontMedium, textX, 130, username);
-
-        // Time in server calculation
-        const joinedAt = member.joinedAt || new Date();
-        const timeInServer = getTimeInServer(joinedAt);
-        const timeText = `Was with us for ${timeInServer}`;
-        image.print(fontSmall, textX, 180, timeText);
-
-        // Remaining members
-        const remainingText = `We now have ${member.guild.memberCount} members`;
-        image.print(fontSmall, textX, 210, remainingText);
-
-        // Decorative line (red)
-        for (let x = textX; x < textX + 200; x++) {
-            image.setPixelColor(0xef4444FF, x, 240);
-            image.setPixelColor(0xef4444FF, x, 241);
+        // Add decorative accent line
+        for (let x = 30; x < width - 200; x++) {
+            const progress = (x - 30) / (width - 230);
+            const opacity = Math.min(255, 180 * (1 - progress));
+            image.setPixelColor(Jimp.rgbaToInt(239, 68, 68, opacity), x, height - 20);
+            image.setPixelColor(Jimp.rgbaToInt(239, 68, 68, opacity * 0.5), x, height - 19);
         }
 
         const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
@@ -186,39 +200,6 @@ async function createLeaveImage(member) {
     } catch (error) {
         console.error('Error generating goodbye image:', error);
         return null;
-    }
-}
-
-/**
- * Get ordinal suffix (1st, 2nd, 3rd, etc.)
- */
-function getOrdinalSuffix(num) {
-    const j = num % 10;
-    const k = num % 100;
-
-    if (j === 1 && k !== 11) return 'st';
-    if (j === 2 && k !== 12) return 'nd';
-    if (j === 3 && k !== 13) return 'rd';
-    return 'th';
-}
-
-/**
- * Calculate time in server
- */
-function getTimeInServer(joinDate) {
-    const now = new Date();
-    const diff = now - joinDate;
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 0) {
-        return `${days} day${days > 1 ? 's' : ''}, ${hours} hour${hours > 1 ? 's' : ''}`;
-    } else if (hours > 0) {
-        return `${hours} hour${hours > 1 ? 's' : ''}, ${minutes} min${minutes > 1 ? 's' : ''}`;
-    } else {
-        return `${minutes} minute${minutes > 1 ? 's' : ''}`;
     }
 }
 
