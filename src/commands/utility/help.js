@@ -14,7 +14,7 @@ module.exports = {
             .addFields(
                 {
                     name: '🎮 Roblox & Oyun',
-                    value: '`/verify` `/status` `/changelog` `/group`',
+                    value: '`/verify` `/status` `/group`',
                     inline: false
                 },
                 {
@@ -34,7 +34,7 @@ module.exports = {
                 },
                 {
                     name: '⚙️ Admin & Kurulum',
-                    value: '`/event` `/update` `/ticket` `/setup-stats` `/setup-welcome` `/setup-levels` `/setup-booster` `/reactionrole` `/logs` `/embed`',
+                    value: '`/event` `/ticket` `/setup-stats` `/setup-welcome` `/setup-levels` `/setup-booster` `/reactionrole` `/logs` `/embed`',
                     inline: false
                 },
                 {
