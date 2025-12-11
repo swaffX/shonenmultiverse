@@ -31,7 +31,7 @@ async function initInviteSystem(client) {
 
 /**
  * Handle member join - track who invited them
- * ONLY sends to invite notification channel (not welcome channel)
+ * Prevents rejoin exploit by checking if user was already invited
  */
 async function handleMemberJoin(member) {
     if (member.user.bot) return;
@@ -53,6 +53,21 @@ async function handleMemberJoin(member) {
         if (!usedInvite || !usedInvite.inviter) return;
 
         const inviter = usedInvite.inviter;
+
+        // Don't count self-invites
+        if (inviter.id === member.id) return;
+
+        // Check if this user was already invited before (REJOIN PREVENTION)
+        const existingInvite = await Invite.findOne({
+            guildId: guild.id,
+            'invitedUsers.userId': member.id
+        });
+
+        if (existingInvite) {
+            // User already invited before - this is a rejoin, don't count
+            console.log(`📨 Rejoin detected for ${member.user.tag} - not counting`);
+            return;
+        }
 
         // Check if fake invite (account less than 7 days old)
         const accountAge = Date.now() - member.user.createdTimestamp;
@@ -77,7 +92,7 @@ async function handleMemberJoin(member) {
 
         await inviteData.save();
 
-        // Send ONLY ONE notification to invite channel
+        // Send notification
         await sendInviteNotification(guild, member, inviter, inviteData, isFake);
 
         // Check milestones
@@ -115,7 +130,7 @@ async function handleMemberLeave(member) {
 }
 
 /**
- * Send invite notification - ONLY ONE message with image
+ * Send invite notification
  */
 async function sendInviteNotification(guild, member, inviter, inviteData, isFake) {
     const channel = guild.channels.cache.get(INVITE_CHANNEL_ID);
@@ -125,7 +140,6 @@ async function sendInviteNotification(guild, member, inviter, inviteData, isFake
     const inviterName = inviter.username || inviter.displayName || 'Unknown';
     const attachment = await createInviteImage(member.user, inviterName);
 
-    // Simple embed - no fields
     const embed = new EmbedBuilder()
         .setColor(isFake ? '#F59E0B' : '#10B981')
         .setAuthor({
