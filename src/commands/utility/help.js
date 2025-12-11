@@ -19,7 +19,7 @@ module.exports = {
                 },
                 {
                     name: '📊 Level & İstatistik',
-                    value: '`/level` `/stats` `/top` `/invites` `/serverinfo`',
+                    value: '`/level` `/stats` `/top` `/invites` `/achievements` `/serverinfo`',
                     inline: false
                 },
                 {

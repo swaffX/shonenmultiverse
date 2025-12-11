@@ -158,6 +158,12 @@ async function handleMessageXP(message, client) {
         }
 
         await user.save();
+
+        // Check achievements
+        try {
+            const { checkAchievements } = require('./achievementSystem');
+            await checkAchievements({ id: message.author.id, guild: message.guild }, client);
+        } catch (e) { /* Achievement system might not be initialized */ }
     } catch (error) {
         console.error('Message XP error:', error);
     }
