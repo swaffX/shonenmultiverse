@@ -21,11 +21,17 @@ const guildSchema = new mongoose.Schema({
         message: { type: String, default: '**{user}** has left **{server}**. We now have **{count}** members.' },
         bannerUrl: { type: String, default: null }
     },
-    // Level system settings
+    // Level system settings (combined)
     levelSystem: {
         enabled: { type: Boolean, default: true },
-        channelId: { type: String, default: null }, // Level up announcement channel
-        rewards: { type: Map, of: String, default: new Map() } // level -> roleId
+        channelId: { type: String, default: null },
+        rewards: { type: Map, of: String, default: new Map() },
+        roles: [{
+            level: Number,
+            roleId: String,
+            name: String
+        }],
+        statsMessageId: { type: String, default: null }
     },
     // Anti-spam settings
     antiSpam: {
@@ -41,7 +47,7 @@ const guildSchema = new mongoose.Schema({
     // Anti-nuke settings
     antiNuke: {
         enabled: { type: Boolean, default: true },
-        whitelistedUsers: [{ type: String }] // Bot'un müdahale etmeyeceği kullanıcılar
+        whitelistedUsers: [{ type: String }]
     },
     // Logging
     logging: {
@@ -88,15 +94,6 @@ const guildSchema = new mongoose.Schema({
             voice: { type: String, default: null },
             server: { type: String, default: null }
         }
-    },
-    // Level system
-    levelSystem: {
-        roles: [{
-            level: Number,
-            roleId: String,
-            name: String
-        }],
-        statsMessageId: { type: String, default: null }
     }
 }, { timestamps: true });
 

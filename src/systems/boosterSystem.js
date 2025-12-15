@@ -140,21 +140,31 @@ async function updateBoosterEmbed(guild, channelId, bannerUrl = null) {
         // Get guild data for stored message ID
         const guildData = await Guild.findOne({ guildId: guild.id });
         const storedMessageId = guildData?.boosterSystem?.messageId;
+        const storedChannelId = guildData?.boosterSystem?.channelId;
 
         // Try to edit existing message first
-        if (storedMessageId) {
+        if (storedMessageId && storedChannelId === channelId) {
             try {
                 const existingMessage = await channel.messages.fetch(storedMessageId);
-                await existingMessage.edit({ embeds: [embed] });
-                return existingMessage;
+                if (existingMessage) {
+                    await existingMessage.edit({ embeds: [embed] });
+                    console.log('✅ Booster embed updated successfully');
+                    return existingMessage;
+                }
             } catch (err) {
-                console.log('Booster message not found, creating new one...');
+                console.log('⚠️ Booster message not found or deleted, creating new one...');
+                // Clear old message ID since it's invalid
+                await Guild.findOneAndUpdate(
+                    { guildId: guild.id },
+                    { 'boosterSystem.messageId': null }
+                );
             }
         }
 
         // Only send new message if no existing message found
         const message = await channel.send({ embeds: [embed] });
         await saveBoosterMessageId(guild.id, message.id, channelId, bannerUrl);
+        console.log('📨 New booster embed created and saved');
         return message;
     } catch (error) {
         console.error('Booster embed update error:', error);

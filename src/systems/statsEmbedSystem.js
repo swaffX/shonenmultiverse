@@ -120,22 +120,28 @@ async function updateStatsEmbed(client, period = 'weekly') {
             if (storedMessageId) {
                 try {
                     const message = await channel.messages.fetch(storedMessageId);
-                    await message.edit({ embeds: [embed], components: [row] });
-                } catch {
-                    const newMsg = await channel.send({ embeds: [embed], components: [row] });
+                    if (message) {
+                        await message.edit({ embeds: [embed], components: [row] });
+                        continue; // Successfully updated, move to next guild
+                    }
+                } catch (err) {
+                    console.log('⚠️ Stats message not found, creating new one...');
+                    // Clear invalid message ID
                     await Guild.findOneAndUpdate(
                         { guildId: guild.id },
-                        { 'levelSystem.statsMessageId': newMsg.id }
+                        { 'levelSystem.statsMessageId': null }
                     );
                 }
-            } else {
-                const newMsg = await channel.send({ embeds: [embed], components: [row] });
-                await Guild.findOneAndUpdate(
-                    { guildId: guild.id },
-                    { 'levelSystem.statsMessageId': newMsg.id },
-                    { upsert: true }
-                );
             }
+
+            // Only create new message if we reach here
+            const newMsg = await channel.send({ embeds: [embed], components: [row] });
+            await Guild.findOneAndUpdate(
+                { guildId: guild.id },
+                { 'levelSystem.statsMessageId': newMsg.id },
+                { upsert: true }
+            );
+            console.log('📨 New stats embed created and saved');
         }
     } catch (error) {
         console.error('Stats embed update error:', error);
